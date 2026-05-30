@@ -1,13 +1,15 @@
 package com.fish.service.impl;
 
-import com.github.pagehelper.Page;
-import com.github.pagehelper.PageHelper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fish.constant.MessageConstant;
 import com.fish.constant.StatusConstant;
 import com.fish.context.BaseContext;
 import com.fish.dto.CategoryDTO;
 import com.fish.dto.CategoryPageQueryDTO;
 import com.fish.entity.Category;
+import com.fish.entity.Dish;
+import com.fish.entity.Setmeal;
 import com.fish.exception.DeletionNotAllowedException;
 import com.fish.mapper.CategoryMapper;
 import com.fish.mapper.DishMapper;
@@ -15,6 +17,7 @@ import com.fish.mapper.SetmealMapper;
 import com.fish.result.PageResult;
 import com.fish.service.CategoryService;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -22,9 +25,6 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * 分类业务层
- */
 @Service
 @Slf4j
 public class CategoryServiceImpl implements CategoryService {
@@ -36,98 +36,69 @@ public class CategoryServiceImpl implements CategoryService {
     @Autowired
     private SetmealMapper setmealMapper;
 
-    /**
-     * 新增分类
-     * @param categoryDTO
-     */
+    @Override
     public void save(CategoryDTO categoryDTO) {
         Category category = new Category();
-        //属性拷贝
         BeanUtils.copyProperties(categoryDTO, category);
-
-        //分类状态默认为禁用状态0
         category.setStatus(StatusConstant.DISABLE);
-
-        //设置创建时间、修改时间、创建人、修改人
         category.setCreateTime(LocalDateTime.now());
         category.setUpdateTime(LocalDateTime.now());
         category.setCreateUser(BaseContext.getCurrentId());
         category.setUpdateUser(BaseContext.getCurrentId());
-
         categoryMapper.insert(category);
     }
 
-    /**
-     * 分页查询
-     * @param categoryPageQueryDTO
-     * @return
-     */
+    @Override
     public PageResult pageQuery(CategoryPageQueryDTO categoryPageQueryDTO) {
-        PageHelper.startPage(categoryPageQueryDTO.getPage(),categoryPageQueryDTO.getPageSize());
-        //下一条sql进行分页，自动加入limit关键字分页
-        Page<Category> page = categoryMapper.pageQuery(categoryPageQueryDTO);
-        return new PageResult(page.getTotal(), page.getResult());
+        Page<Category> page = new Page<>(categoryPageQueryDTO.getPage(), categoryPageQueryDTO.getPageSize());
+        page = categoryMapper.pageQuery(page, categoryPageQueryDTO);
+        return new PageResult(page.getTotal(), page.getRecords());
     }
 
-    /**
-     * 根据id删除分类
-     * @param id
-     */
+    @Override
     public void deleteById(Long id) {
-        //查询当前分类是否关联了菜品，如果关联了就抛出业务异常
-        Integer count = dishMapper.countByCategoryId(id);
-        if(count > 0){
-            //当前分类下有菜品，不能删除
+        Long dishCount = dishMapper.selectCount(Wrappers.lambdaQuery(Dish.class).eq(Dish::getCategoryId, id));
+        if (dishCount > 0) {
             throw new DeletionNotAllowedException(MessageConstant.CATEGORY_BE_RELATED_BY_DISH);
         }
 
-        //查询当前分类是否关联了套餐，如果关联了就抛出业务异常
-        count = setmealMapper.countByCategoryId(id);
-        if(count > 0){
-            //当前分类下有菜品，不能删除
+        Long setmealCount = setmealMapper.selectCount(Wrappers.lambdaQuery(Setmeal.class).eq(Setmeal::getCategoryId, id));
+        if (setmealCount > 0) {
             throw new DeletionNotAllowedException(MessageConstant.CATEGORY_BE_RELATED_BY_SETMEAL);
         }
 
-        //删除分类数据
         categoryMapper.deleteById(id);
     }
 
-    /**
-     * 修改分类
-     * @param categoryDTO
-     */
+    @Override
     public void update(CategoryDTO categoryDTO) {
         Category category = new Category();
-        BeanUtils.copyProperties(categoryDTO,category);
-
-        //设置修改时间、修改人
-        category.setUpdateTime(LocalDateTime.now());
-        category.setUpdateUser(BaseContext.getCurrentId());
-
-        categoryMapper.update(category);
+        BeanUtils.copyProperties(categoryDTO, category);
+        categoryMapper.update(null, Wrappers.lambdaUpdate(Category.class)
+                .eq(Category::getId, category.getId())
+                .set(category.getType() != null, Category::getType, category.getType())
+                .set(StringUtils.isNotBlank(category.getName()), Category::getName, category.getName())
+                .set(category.getSort() != null, Category::getSort, category.getSort())
+                .set(category.getStatus() != null, Category::getStatus, category.getStatus())
+                .set(Category::getUpdateTime, LocalDateTime.now())
+                .set(Category::getUpdateUser, BaseContext.getCurrentId()));
     }
 
-    /**
-     * 启用、禁用分类
-     * @param status
-     * @param id
-     */
+    @Override
     public void startOrStop(Integer status, Long id) {
-        Category category = Category.builder()
-                .id(id)
-                .status(status)
-                .updateTime(LocalDateTime.now())
-                .updateUser(BaseContext.getCurrentId())
-                .build();
-        categoryMapper.update(category);
+        categoryMapper.update(null, Wrappers.lambdaUpdate(Category.class)
+                .eq(Category::getId, id)
+                .set(Category::getStatus, status)
+                .set(Category::getUpdateTime, LocalDateTime.now())
+                .set(Category::getUpdateUser, BaseContext.getCurrentId()));
     }
 
-    /**
-     * 根据类型查询分类
-     * @param type
-     * @return
-     */
+    @Override
     public List<Category> list(Integer type) {
-        return categoryMapper.list(type);
+        return categoryMapper.selectList(Wrappers.lambdaQuery(Category.class)
+                .eq(Category::getStatus, StatusConstant.ENABLE)
+                .eq(type != null, Category::getType, type)
+                .orderByAsc(Category::getSort)
+                .orderByDesc(Category::getCreateTime));
     }
 }

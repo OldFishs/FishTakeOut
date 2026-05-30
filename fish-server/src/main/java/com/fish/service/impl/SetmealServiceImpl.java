@@ -1,11 +1,14 @@
 package com.fish.service.impl;
 
-import com.github.pagehelper.Page;
-import com.github.pagehelper.PageHelper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fish.dto.SetmealDTO;
 import com.fish.dto.SetmealPageQueryDTO;
+import com.fish.entity.Category;
+import com.fish.entity.Dish;
 import com.fish.entity.Setmeal;
 import com.fish.entity.SetmealDish;
+import com.fish.mapper.CategoryMapper;
 import com.fish.mapper.DishMapper;
 import com.fish.mapper.SetmealDishMapper;
 import com.fish.mapper.SetmealMapper;
@@ -13,18 +16,18 @@ import com.fish.result.PageResult;
 import com.fish.service.SetmealService;
 import com.fish.vo.DishItemVO;
 import com.fish.vo.SetmealVO;
-import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
-/**
- * 套餐业务实现
- */
 @Service
-@Slf4j
 public class SetmealServiceImpl implements SetmealService {
 
     @Autowired
@@ -32,106 +35,121 @@ public class SetmealServiceImpl implements SetmealService {
     @Autowired
     private SetmealDishMapper setmealDishMapper;
     @Autowired
+    private CategoryMapper categoryMapper;
+    @Autowired
     private DishMapper dishMapper;
 
-    /**
-     * 新增套餐，同时需要保存套餐和菜品的关联关系
-     *
-     * @param setmealDTO
-     */
     @Override
+    @Transactional
     public void saveWithDish(SetmealDTO setmealDTO) {
         Setmeal setmeal = new Setmeal();
         BeanUtils.copyProperties(setmealDTO, setmeal);
         setmealMapper.insert(setmeal);
+
         List<SetmealDish> setmealDishes = setmealDTO.getSetmealDishes();
-        setmealDishes.forEach(setmealDish -> {
-            setmealDish.setSetmealId(setmeal.getId());
-        });
-        setmealDishMapper.insertBatch(setmealDishes);
-        log.info("套餐和菜品的关联关系保存成功");
-        log.info("套餐保存成功");
+        setmealDishes.forEach(setmealDish -> setmealDish.setSetmealId(setmeal.getId()));
+        setmealDishes.forEach(setmealDishMapper::insert);
     }
 
-    /**
-     * 分页查询
-     *
-     * @param setmealPageQueryDTO
-     * @return
-     */
     @Override
     public PageResult pageQuery(SetmealPageQueryDTO setmealPageQueryDTO) {
-        PageHelper.startPage(setmealPageQueryDTO.getPage(), setmealPageQueryDTO.getPageSize());
-        Page<SetmealVO> page = setmealMapper.pageQuery(setmealPageQueryDTO);
-        log.info("分页查询结果：{}", page);
-        return new PageResult(page.getTotal(), page.getResult());
+        Page<Setmeal> page = new Page<>(setmealPageQueryDTO.getPage(), setmealPageQueryDTO.getPageSize());
+        page = setmealMapper.pageQuery(page, setmealPageQueryDTO);
+        List<SetmealVO> setmealVOList = buildSetmealVOList(page.getRecords());
+        return new PageResult(page.getTotal(), setmealVOList);
     }
 
-    /**
-     * 批量删除套餐
-     *
-     * @param ids
-     */
     @Override
     public void deleteBatch(List<Long> ids) {
-
     }
 
-    /**
-     * 根据id查询套餐和关联的菜品数据
-     *
-     * @param id
-     * @return
-     */
     @Override
     public SetmealVO getByIdWithDish(Long id) {
-        return null;
+        return getById(id);
     }
 
-    /**
-     * 修改套餐
-     *
-     * @param setmealDTO
-     */
     @Override
     public void update(SetmealDTO setmealDTO) {
         Setmeal setmeal = new Setmeal();
         BeanUtils.copyProperties(setmealDTO, setmeal);
-        setmealMapper.update(setmeal);
+        setmealMapper.updateById(setmeal);
     }
 
-    /**
-     * 套餐起售、停售
-     *
-     * @param status
-     * @param id
-     */
     @Override
     public void startOrStop(Integer status, Long id) {
-        setmealMapper.startOrStop(status, id);
+        setmealMapper.update(null, Wrappers.lambdaUpdate(Setmeal.class)
+                .eq(Setmeal::getId, id)
+                .set(Setmeal::getStatus, status));
     }
 
-    /**
-     * 条件查询
-     * @param setmeal
-     * @return
-     */
+    @Override
     public List<Setmeal> list(Setmeal setmeal) {
-        List<Setmeal> list = setmealMapper.list(setmeal);
-        return list;
+        return setmealMapper.selectList(Wrappers.lambdaQuery(Setmeal.class)
+                .like(StringUtils.isNotBlank(setmeal.getName()), Setmeal::getName, setmeal.getName())
+                .eq(setmeal.getCategoryId() != null, Setmeal::getCategoryId, setmeal.getCategoryId())
+                .eq(setmeal.getStatus() != null, Setmeal::getStatus, setmeal.getStatus()));
     }
 
-    /**
-     * 根据id查询菜品选项
-     * @param id
-     * @return
-     */
+    @Override
     public List<DishItemVO> getDishItemById(Long id) {
-        return setmealMapper.getDishItemBySetmealId(id);
+        return getDishItemBySetmealId(id);
     }
 
     @Override
     public SetmealVO getById(Long id) {
-        return setmealMapper.getByIdWithDish(id);
+        Setmeal setmeal = setmealMapper.selectById(id);
+        if (setmeal == null) {
+            return null;
+        }
+        SetmealVO setmealVO = new SetmealVO();
+        BeanUtils.copyProperties(setmeal, setmealVO);
+
+        Category category = categoryMapper.selectById(setmeal.getCategoryId());
+        if (category != null) {
+            setmealVO.setCategoryName(category.getName());
+        }
+
+        List<SetmealDish> setmealDishes = setmealDishMapper.selectList(
+                Wrappers.lambdaQuery(SetmealDish.class).eq(SetmealDish::getSetmealId, id));
+        setmealVO.setSetmealDishes(setmealDishes);
+        return setmealVO;
+    }
+
+    private List<DishItemVO> getDishItemBySetmealId(Long setmealId) {
+        List<SetmealDish> setmealDishes = setmealDishMapper.selectList(
+                Wrappers.lambdaQuery(SetmealDish.class).eq(SetmealDish::getSetmealId, setmealId));
+
+        List<DishItemVO> dishItemVOList = new ArrayList<>();
+        for (SetmealDish setmealDish : setmealDishes) {
+            DishItemVO dishItemVO = DishItemVO.builder()
+                    .name(setmealDish.getName())
+                    .copies(setmealDish.getCopies())
+                    .build();
+            Dish dish = dishMapper.selectById(setmealDish.getDishId());
+            if (dish != null) {
+                dishItemVO.setImage(dish.getImage());
+                dishItemVO.setDescription(dish.getDescription());
+            }
+            dishItemVOList.add(dishItemVO);
+        }
+        return dishItemVOList;
+    }
+
+    private List<SetmealVO> buildSetmealVOList(List<Setmeal> setmeals) {
+        if (setmeals == null || setmeals.isEmpty()) {
+            return new ArrayList<>();
+        }
+        List<Long> categoryIds = setmeals.stream().map(Setmeal::getCategoryId).distinct().collect(Collectors.toList());
+        Map<Long, String> categoryNameMap = categoryMapper.selectBatchIds(categoryIds).stream()
+                .collect(Collectors.toMap(Category::getId, Category::getName));
+
+        List<SetmealVO> setmealVOList = new ArrayList<>();
+        for (Setmeal setmeal : setmeals) {
+            SetmealVO setmealVO = new SetmealVO();
+            BeanUtils.copyProperties(setmeal, setmealVO);
+            setmealVO.setCategoryName(categoryNameMap.get(setmeal.getCategoryId()));
+            setmealVOList.add(setmealVO);
+        }
+        return setmealVOList;
     }
 }

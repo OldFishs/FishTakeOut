@@ -24,7 +24,7 @@ import java.time.LocalDateTime;
 @Slf4j
 public class AutoFillAspect {
     // 切入点
-    @Pointcut("execution(* com.fish.mapper.*.*(..)) && @annotation(com.fish.annotation.AutoFill)")
+    @Pointcut("execution(* com.fish.mapper.*.insert(..)) || (execution(* com.fish.mapper.*.*(..)) && @annotation(com.fish.annotation.AutoFill))")
     public void autoFillPointCut() {
 
     }
@@ -38,9 +38,16 @@ public class AutoFillAspect {
         log.info("开始进行公共字段自动填充");
 
         // 获取操作类型
-        MethodSignature signature = (MethodSignature) joinPoint.getSignature(); // 方法签名对象
-        AutoFill autoFill = signature.getMethod().getAnnotation(AutoFill.class); // 获得方法上的注解对象
-        OperationType operationType = autoFill.value(); // 获取数据库实际操作类型
+        MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+        OperationType operationType;
+        AutoFill autoFill = signature.getMethod().getAnnotation(AutoFill.class);
+        if (autoFill != null) {
+            operationType = autoFill.value();
+        } else if ("insert".equals(signature.getMethod().getName())) {
+            operationType = OperationType.INSERT;
+        } else {
+            return;
+        }
         
         // 获取拦截的方法参数 -- 实体对象
         Object[] args = joinPoint.getArgs(); // 获取所有参数

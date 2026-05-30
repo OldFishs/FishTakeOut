@@ -1,7 +1,7 @@
 package com.fish.service.impl;
 
-import com.github.pagehelper.Page;
-import com.github.pagehelper.PageHelper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fish.constant.MessageConstant;
 import com.fish.constant.PasswordConstant;
 import com.fish.constant.StatusConstant;
@@ -16,13 +16,13 @@ import com.fish.exception.PasswordErrorException;
 import com.fish.mapper.EmployeeMapper;
 import com.fish.result.PageResult;
 import com.fish.service.EmployeeService;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Objects;
 
 @Service
@@ -31,60 +31,38 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Autowired
     private EmployeeMapper employeeMapper;
 
-    /**
-     * 员工登录
-     *
-     * @param employeeLoginDTO
-     * @return
-     */
+    @Override
     public Employee login(EmployeeLoginDTO employeeLoginDTO) {
-        String username = employeeLoginDTO.getUsername();
-        String password = employeeLoginDTO.getPassword();
+        Employee employee = employeeMapper.selectOne(
+                Wrappers.lambdaQuery(Employee.class)
+                        .eq(Employee::getUsername, employeeLoginDTO.getUsername()));
 
-        //1、根据用户名查询数据库中的数据
-        Employee employee = employeeMapper.getByUsername(username);
-
-        //2、处理各种异常情况（用户名不存在、密码不对、账号被锁定）
         if (employee == null) {
-            //账号不存在
             throw new AccountNotFoundException(MessageConstant.ACCOUNT_NOT_FOUND);
         }
 
-        //密码比对
-        String md5 = DigestUtils.md5DigestAsHex(password.getBytes());
+        String md5 = DigestUtils.md5DigestAsHex(employeeLoginDTO.getPassword().getBytes());
         if (!md5.equals(employee.getPassword())) {
-            //密码错误
             throw new PasswordErrorException(MessageConstant.PASSWORD_ERROR);
         }
 
         if (Objects.equals(employee.getStatus(), StatusConstant.DISABLE)) {
-            //账号被锁定
             throw new AccountLockedException(MessageConstant.ACCOUNT_LOCKED);
         }
 
-        //3、返回实体对象
         return employee;
     }
 
     @Override
     public void save(EmployeeDTO employeeDTO) {
         Employee employee = new Employee();
-
-        // 对象属性拷贝
         BeanUtils.copyProperties(employeeDTO, employee);
-
-        // 设置账号状态
         employee.setStatus(StatusConstant.ENABLE);
-
-        // 设置密码
         employee.setPassword(DigestUtils.md5DigestAsHex(PasswordConstant.DEFAULT_PASSWORD.getBytes()));
 
-        // 设置创建时间和修改时间
         LocalDateTime now = LocalDateTime.now();
         employee.setCreateTime(now);
         employee.setUpdateTime(now);
-
-        // 记录创建人和修改人ID
         Long id = BaseContext.getCurrentId();
         employee.setCreateUser(id);
         employee.setUpdateUser(id);
@@ -94,37 +72,38 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Override
     public PageResult pageQuery(EmployeePageQueryDTO employeePageQueryDTO) {
-        PageHelper.startPage(employeePageQueryDTO.getPage(), employeePageQueryDTO.getPageSize());
-        Page<Employee> page = employeeMapper.pageQuery(employeePageQueryDTO);
-
-        long total = page.getTotal();
-        List<Employee> result = page.getResult();
-
-        return new PageResult(total, result);
+        Page<Employee> page = new Page<>(employeePageQueryDTO.getPage(), employeePageQueryDTO.getPageSize());
+        page = employeeMapper.pageQuery(page, employeePageQueryDTO);
+        return new PageResult(page.getTotal(), page.getRecords());
     }
 
     @Override
     public void startOrStop(Integer status, Long id) {
-        Employee employee = Employee.builder()
-                .updateTime(LocalDateTime.now())
-                .id(id)
-                .status(status)
-                .build();
-        employeeMapper.update(employee);
+        employeeMapper.update(null, Wrappers.lambdaUpdate(Employee.class)
+                .eq(Employee::getId, id)
+                .set(Employee::getStatus, status)
+                .set(Employee::getUpdateTime, LocalDateTime.now()));
     }
 
     @Override
     public Employee getById(Long id) {
-        return employeeMapper.getById(id);
+        return employeeMapper.selectById(id);
     }
 
     @Override
     public void update(EmployeeDTO employeeDTO) {
         Employee employee = new Employee();
         BeanUtils.copyProperties(employeeDTO, employee);
-        employee.setUpdateTime(LocalDateTime.now());
-        employee.setUpdateUser(BaseContext.getCurrentId());
-        employeeMapper.update(employee);
+        employeeMapper.update(null, Wrappers.lambdaUpdate(Employee.class)
+                .eq(Employee::getId, employee.getId())
+                .set(StringUtils.isNotBlank(employee.getName()), Employee::getName, employee.getName())
+                .set(StringUtils.isNotBlank(employee.getUsername()), Employee::getUsername, employee.getUsername())
+                .set(StringUtils.isNotBlank(employee.getPassword()), Employee::getPassword, employee.getPassword())
+                .set(StringUtils.isNotBlank(employee.getPhone()), Employee::getPhone, employee.getPhone())
+                .set(StringUtils.isNotBlank(employee.getSex()), Employee::getSex, employee.getSex())
+                .set(StringUtils.isNotBlank(employee.getIdNumber()), Employee::getIdNumber, employee.getIdNumber())
+                .set(employee.getStatus() != null, Employee::getStatus, employee.getStatus())
+                .set(Employee::getUpdateTime, LocalDateTime.now())
+                .set(Employee::getUpdateUser, BaseContext.getCurrentId()));
     }
-
 }

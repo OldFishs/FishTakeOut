@@ -16,13 +16,13 @@ spring:
     host: ${fish.redis.host}
     port: ${fish.redis.port}
 
-mybatis:
-  #mapper配置文件
-  mapper-locations: classpath:mapper/*.xml
+mybatis-plus:
   type-aliases-package: com.fish.entity
   configuration:
-    #开启驼峰命名
     map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: auto
 
 logging:
   level:

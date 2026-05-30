@@ -1,95 +1,24 @@
 package com.fish.mapper;
 
-import com.github.pagehelper.Page;
-import com.fish.dto.GoodsSalesDTO;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fish.dto.OrdersPageQueryDTO;
 import com.fish.entity.Orders;
+import org.apache.commons.lang.StringUtils;
 import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Select;
-
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
 
 @Mapper
-public interface OrderMapper {
+public interface OrderMapper extends BaseMapper<Orders> {
 
-    /**
-     * 插入订单数据
-     * @param orders
-     */
-    void insert(Orders orders);
-
-    /**
-     * 根据订单号和用户id查询订单
-     * @param orderNumber
-     * @param userId
-     */
-    @Select("select * from orders where number = #{orderNumber} and user_id= #{userId}")
-    Orders getByNumberAndUserId(String orderNumber, Long userId);
-
-    /**
-     * 修改订单信息
-     * @param orders
-     */
-    void update(Orders orders);
-
-    /**
-     * 分页条件查询并按下单时间排序
-     * @param ordersPageQueryDTO
-     */
-    Page<Orders> pageQuery(OrdersPageQueryDTO ordersPageQueryDTO);
-
-    /**
-     * 根据id查询订单
-     * @param id
-     */
-    @Select("select * from orders where id=#{id}")
-    Orders getById(Long id);
-
-    /**
-     * 根据状态统计订单数量
-     * @param status
-     */
-    @Select("select count(id) from orders where status = #{status}")
-    Integer countStatus(Integer status);
-
-    /**
-     * 根据订单状态和下单时间查询订单
-     * @param status
-     * @param orderTime
-     * @return
-     */
-    @Select("select * from orders where status = #{status} and order_time < #{orderTime}")
-    List<Orders> getByStatusAndOrderTimeLT(Integer status, LocalDateTime orderTime);
-
-    /**
-     * 根据动态条件统计营业额数据
-     * @param map
-     * @return
-     */
-    Double sumByMap(Map map);
-
-    /**
-     * 根据动态条件统计订单数量
-     * @param map
-     * @return
-     */
-    Integer countByMap(Map map);
-
-    /**
-     * 统计指定时间区间内的销量排名前10
-     * @param begin
-     * @param end
-     * @return
-     */
-    List<GoodsSalesDTO> getSalesTop10(LocalDateTime begin,LocalDateTime end);
-
-    /**
-     * 根据订单号查询订单
-     *
-     * @param orderNumber
-     */
-    @Select("select * from orders where number = #{orderNumber}")
-    Orders getByNumber(String orderNumber);
+    default Page<Orders> pageQuery(Page<Orders> page, OrdersPageQueryDTO dto) {
+        return selectPage(page, Wrappers.lambdaQuery(Orders.class)
+                .like(StringUtils.isNotBlank(dto.getNumber()), Orders::getNumber, dto.getNumber())
+                .like(StringUtils.isNotBlank(dto.getPhone()), Orders::getPhone, dto.getPhone())
+                .eq(dto.getUserId() != null, Orders::getUserId, dto.getUserId())
+                .eq(dto.getStatus() != null, Orders::getStatus, dto.getStatus())
+                .ge(dto.getBeginTime() != null, Orders::getOrderTime, dto.getBeginTime())
+                .le(dto.getEndTime() != null, Orders::getOrderTime, dto.getEndTime())
+                .orderByDesc(Orders::getOrderTime));
+    }
 }

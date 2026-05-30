@@ -1,5 +1,6 @@
 package com.fish.task;
 
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fish.entity.Orders;
 import com.fish.mapper.OrderMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -17,39 +18,35 @@ public class OrderTask {
     @Autowired
     private OrderMapper orderMapper;
 
-    /**
-     * 处理超时订单的方法
-     */
-    @Scheduled(cron = "0 * * * * ? ")   // 每分钟触发一次
+    @Scheduled(cron = "0 * * * * ? ")
     public void processTimeoutOrders() {
         log.info("处理超时订单");
-        // 获取超时订单 当前时间 - 15
-        List<Orders> orderList = orderMapper.getByStatusAndOrderTimeLT(Orders.PENDING_PAYMENT, LocalDateTime.now().plusMinutes(-15));
+        List<Orders> orderList = orderMapper.selectList(Wrappers.lambdaQuery(Orders.class)
+                .eq(Orders::getStatus, Orders.PENDING_PAYMENT)
+                .lt(Orders::getOrderTime, LocalDateTime.now().plusMinutes(-15)));
+
         if (orderList != null && !orderList.isEmpty()) {
-            orderList.forEach(order -> {
-                order.setStatus(Orders.CANCELLED);
-                order.setCancelReason("订单超时，自动取消");
-                order.setCancelTime(LocalDateTime.now());
-                orderMapper.update(order);
-            });
+            orderList.forEach(order -> orderMapper.update(null, Wrappers.lambdaUpdate(Orders.class)
+                    .eq(Orders::getId, order.getId())
+                    .set(Orders::getStatus, Orders.CANCELLED)
+                    .set(Orders::getCancelReason, "订单超时，自动取消")
+                    .set(Orders::getCancelTime, LocalDateTime.now())));
         }
     }
 
-    /**
-     * 处理一直处于派送中的
-     */
-    @Scheduled(cron = "0 0 1 * * ? ")   // 每天凌晨一点触发
+    @Scheduled(cron = "0 0 1 * * ? ")
     public void processDeliveryOrders() {
         log.info("处理派送中的订单");
-        // 获取派送中的订单
         LocalDateTime time = LocalDateTime.now().plusMinutes(-60);
-        List<Orders> orderList = orderMapper.getByStatusAndOrderTimeLT(Orders.DELIVERY_IN_PROGRESS, time);
+        List<Orders> orderList = orderMapper.selectList(Wrappers.lambdaQuery(Orders.class)
+                .eq(Orders::getStatus, Orders.DELIVERY_IN_PROGRESS)
+                .lt(Orders::getOrderTime, time));
+
         if (orderList != null && !orderList.isEmpty()) {
-            orderList.forEach(order -> {
-                order.setStatus(Orders.COMPLETED);
-                order.setDeliveryTime(LocalDateTime.now());
-                orderMapper.update(order);
-            });
+            orderList.forEach(order -> orderMapper.update(null, Wrappers.lambdaUpdate(Orders.class)
+                    .eq(Orders::getId, order.getId())
+                    .set(Orders::getStatus, Orders.COMPLETED)
+                    .set(Orders::getDeliveryTime, LocalDateTime.now())));
         }
     }
 }

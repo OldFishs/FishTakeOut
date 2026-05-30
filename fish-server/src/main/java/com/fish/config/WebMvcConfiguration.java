@@ -1,4 +1,4 @@
-﻿package com.fish.config;
+package com.fish.config;
 
 import com.fish.interceptor.JwtTokenAdminInterceptor;
 import com.fish.interceptor.JwtTokenUserInterceptor;

@@ -2,10 +2,10 @@ fish:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     host: localhost
-    port: 30306
+    port: 3306
     database: fish_take_out
-    username: ''         # 替换为空字符串
-    password: ''         # 替换为空字符串
+    username: 'root'         # 替换为空字符串
+    password: '123456'         # 替换为空字符串
   alioss:
     endpoint: oss-cn-beijing.aliyuncs.com
     access-key-id: ''     # 替换为空字符串

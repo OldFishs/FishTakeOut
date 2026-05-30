@@ -1,25 +1,11 @@
 package com.fish.service.impl;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.apache.commons.lang.StringUtils;
-import org.apache.poi.xssf.usermodel.XSSFRow;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fish.dto.GoodsSalesDTO;
+import com.fish.entity.OrderDetail;
 import com.fish.entity.Orders;
+import com.fish.entity.User;
+import com.fish.mapper.OrderDetailMapper;
 import com.fish.mapper.OrderMapper;
 import com.fish.mapper.UserMapper;
 import com.fish.service.ReportService;
@@ -29,50 +15,54 @@ import com.fish.vo.OrderReportVO;
 import com.fish.vo.SalesTop10ReportVO;
 import com.fish.vo.TurnoverReportVO;
 import com.fish.vo.UserReportVO;
+import org.apache.commons.lang.StringUtils;
+import org.apache.poi.xssf.usermodel.XSSFRow;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.InputStream;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class ReportServiceImpl implements ReportService {
 
     @Autowired
     private OrderMapper orderMapper;
-
+    @Autowired
+    private OrderDetailMapper orderDetailMapper;
     @Autowired
     private UserMapper userMapper;
-
     @Autowired
     private WorkspaceService workspaceService;
 
-    /**
-     * 营业额统计
-     *
-     * @param begin
-     * @param end
-     * @return
-     */
     @Override
     public TurnoverReportVO getTurnoverReport(LocalDate begin, LocalDate end) {
-
         List<LocalDate> dates = new ArrayList<>();
-        dates.add(begin);
-        while (begin.equals(end)) {
-            begin = begin.plusDays(1);
-            dates.add(begin);
+        LocalDate cursor = begin;
+        dates.add(cursor);
+        while (!cursor.equals(end)) {
+            cursor = cursor.plusDays(1);
+            dates.add(cursor);
         }
 
         List<Double> turnoverList = new ArrayList<>();
         for (LocalDate date : dates) {
             LocalDateTime beginTime = LocalDateTime.of(date, LocalTime.MIN);
             LocalDateTime endTime = LocalDateTime.of(date, LocalTime.MAX);
-            Map<String, Object> map = new HashMap<>();
-            map.put("status", Orders.COMPLETED);
-            map.put("begin", beginTime);
-            map.put("end", endTime);
-            Double turnover = orderMapper.sumByMap(map);
-            turnover = turnover == null ? 0.0 : turnover;
-            turnoverList.add(turnover);
+            Double turnover = sumCompletedOrderAmount(beginTime, endTime);
+            turnoverList.add(turnover == null ? 0.0 : turnover);
         }
 
         return TurnoverReportVO.builder()
@@ -81,35 +71,24 @@ public class ReportServiceImpl implements ReportService {
                 .build();
     }
 
-    /**
-     * 根据时间区间统计用户数量
-     *
-     * @param begin
-     * @param end
-     * @return
-     */
     @Override
     public UserReportVO getUserStatistics(LocalDate begin, LocalDate end) {
         List<LocalDate> dateList = new ArrayList<>();
-        dateList.add(begin);
-
-        while (!begin.equals(end)) {
-            begin = begin.plusDays(1);
-            dateList.add(begin);
+        LocalDate cursor = begin;
+        dateList.add(cursor);
+        while (!cursor.equals(end)) {
+            cursor = cursor.plusDays(1);
+            dateList.add(cursor);
         }
-        List<Integer> newUserList = new ArrayList<>(); // 新增用户数
-        List<Integer> totalUserList = new ArrayList<>(); // 总用户数
+
+        List<Integer> newUserList = new ArrayList<>();
+        List<Integer> totalUserList = new ArrayList<>();
 
         for (LocalDate date : dateList) {
             LocalDateTime beginTime = LocalDateTime.of(date, LocalTime.MIN);
             LocalDateTime endTime = LocalDateTime.of(date, LocalTime.MAX);
-            // 新增用户数量 select count(id) from user where create_time > ? and create_time < ?
-            Integer newUser = getUserCount(beginTime, endTime);
-            // 总用户数量 select count(id) from user where create_time < ?
-            Integer totalUser = getUserCount(null, endTime);
-
-            newUserList.add(newUser);
-            totalUserList.add(totalUser);
+            newUserList.add(getUserCount(beginTime, endTime));
+            totalUserList.add(getUserCount(null, endTime));
         }
 
         return UserReportVO.builder()
@@ -119,49 +98,29 @@ public class ReportServiceImpl implements ReportService {
                 .build();
     }
 
-    /**
-     * 根据时间区间统计订单数量
-     *
-     * @param begin
-     * @param end
-     * @return
-     */
+    @Override
     public OrderReportVO getOrderStatistics(LocalDate begin, LocalDate end) {
         List<LocalDate> dateList = new ArrayList<>();
-        dateList.add(begin);
-
-        while (!begin.equals(end)) {
-            begin = begin.plusDays(1);
-            dateList.add(begin);
+        LocalDate cursor = begin;
+        dateList.add(cursor);
+        while (!cursor.equals(end)) {
+            cursor = cursor.plusDays(1);
+            dateList.add(cursor);
         }
-        // 每天订单总数集合
+
         List<Integer> orderCountList = new ArrayList<>();
-        // 每天有效订单数集合
         List<Integer> validOrderCountList = new ArrayList<>();
         for (LocalDate date : dateList) {
             LocalDateTime beginTime = LocalDateTime.of(date, LocalTime.MIN);
             LocalDateTime endTime = LocalDateTime.of(date, LocalTime.MAX);
-            // 查询每天的总订单数 select count(id) from orders where order_time > ? and order_time <
-            // ?
-            Integer orderCount = getOrderCount(beginTime, endTime, null);
-
-            // 查询每天的有效订单数 select count(id) from orders where order_time > ? and order_time <
-            // ? and status = ?
-            Integer validOrderCount = getOrderCount(beginTime, endTime, Orders.COMPLETED);
-
-            orderCountList.add(orderCount);
-            validOrderCountList.add(validOrderCount);
+            orderCountList.add(getOrderCount(beginTime, endTime, null));
+            validOrderCountList.add(getOrderCount(beginTime, endTime, Orders.COMPLETED));
         }
 
-        // 时间区间内的总订单数
-        Integer totalOrderCount = orderCountList.stream().reduce((a, b) -> a + b).get();
-        // 时间区间内的总有效订单数
-        Integer validOrderCount = validOrderCountList.stream().reduce((a, b) -> a + b).get();
-        // 订单完成率
-        Double orderCompletionRate = 0.0;
-        if (totalOrderCount != 0) {
-            orderCompletionRate = validOrderCount.doubleValue() / totalOrderCount;
-        }
+        Integer totalOrderCount = orderCountList.stream().reduce(0, Integer::sum);
+        Integer validOrderCount = validOrderCountList.stream().reduce(0, Integer::sum);
+        Double orderCompletionRate = totalOrderCount != 0 ? validOrderCount.doubleValue() / totalOrderCount : 0.0;
+
         return OrderReportVO.builder()
                 .dateList(StringUtils.join(dateList, ","))
                 .orderCountList(StringUtils.join(orderCountList, ","))
@@ -170,25 +129,38 @@ public class ReportServiceImpl implements ReportService {
                 .validOrderCount(validOrderCount)
                 .orderCompletionRate(orderCompletionRate)
                 .build();
-
     }
 
-    /**
-     * 查询指定时间区间内的销量排名top10
-     *
-     * @param begin
-     * @param end
-     * @return
-     */
+    @Override
     public SalesTop10ReportVO getSalesTop10(LocalDate begin, LocalDate end) {
         LocalDateTime beginTime = LocalDateTime.of(begin, LocalTime.MIN);
         LocalDateTime endTime = LocalDateTime.of(end, LocalTime.MAX);
-        List<GoodsSalesDTO> goodsSalesDTOList = orderMapper.getSalesTop10(beginTime, endTime);
 
-        String nameList = StringUtils
-                .join(goodsSalesDTOList.stream().map(GoodsSalesDTO::getName).collect(Collectors.toList()), ",");
-        String numberList = StringUtils
-                .join(goodsSalesDTOList.stream().map(GoodsSalesDTO::getNumber).collect(Collectors.toList()), ",");
+        List<Orders> completedOrders = orderMapper.selectList(Wrappers.lambdaQuery(Orders.class)
+                .eq(Orders::getStatus, Orders.COMPLETED)
+                .gt(Orders::getOrderTime, beginTime)
+                .lt(Orders::getOrderTime, endTime));
+
+        List<Long> orderIds = completedOrders.stream().map(Orders::getId).collect(Collectors.toList());
+        if (orderIds.isEmpty()) {
+            return SalesTop10ReportVO.builder().nameList("").numberList("").build();
+        }
+
+        List<OrderDetail> orderDetails = orderDetailMapper.selectList(
+                Wrappers.lambdaQuery(OrderDetail.class).in(OrderDetail::getOrderId, orderIds));
+
+        List<GoodsSalesDTO> goodsSalesDTOList = orderDetails.stream()
+                .collect(Collectors.groupingBy(OrderDetail::getName, Collectors.summingInt(OrderDetail::getNumber)))
+                .entrySet().stream()
+                .map(entry -> new GoodsSalesDTO(entry.getKey(), entry.getValue()))
+                .sorted(Comparator.comparing(GoodsSalesDTO::getNumber).reversed())
+                .limit(10)
+                .collect(Collectors.toList());
+
+        String nameList = StringUtils.join(
+                goodsSalesDTOList.stream().map(GoodsSalesDTO::getName).collect(Collectors.toList()), ",");
+        String numberList = StringUtils.join(
+                goodsSalesDTOList.stream().map(GoodsSalesDTO::getNumber).collect(Collectors.toList()), ",");
 
         return SalesTop10ReportVO.builder()
                 .nameList(nameList)
@@ -196,70 +168,30 @@ public class ReportServiceImpl implements ReportService {
                 .build();
     }
 
-    /**
-     * 根据时间区间统计用户数量
-     *
-     * @param beginTime
-     * @param endTime
-     * @return
-     */
-    private Integer getUserCount(LocalDateTime beginTime, LocalDateTime endTime) {
-        Map<String, Object> map = new HashMap<>();
-        map.put("begin", beginTime);
-        map.put("end", endTime);
-        return userMapper.countByMap(map);
-    }
-
-    /**
-     * 根据时间区间统计指定状态的订单数量
-     *
-     * @param beginTime
-     * @param endTime
-     * @param status
-     * @return
-     */
-    private Integer getOrderCount(LocalDateTime beginTime, LocalDateTime endTime, Integer status) {
-        Map<String, Object> map = new HashMap<>();
-        map.put("status", status);
-        map.put("begin", beginTime);
-        map.put("end", endTime);
-        return orderMapper.countByMap(map);
-    }
-
-    /**
-     * 导出excel
-     *
-     * @param resp
-     */
     @Override
     public void exportExcel(HttpServletResponse resp) {
-        // 查数据
         LocalDate begin = LocalDate.now().minusDays(30);
         LocalDate end = LocalDate.now().minusDays(1);
-        // 概览书
-        BusinessDataVO businessDataVO = workspaceService.getBusinessData(LocalDateTime.of(begin, LocalTime.MIN),
+        BusinessDataVO businessDataVO = workspaceService.getBusinessData(
+                LocalDateTime.of(begin, LocalTime.MIN),
                 LocalDateTime.of(end, LocalTime.MAX));
 
-        // 写入excel
         InputStream in = this.getClass().getClassLoader().getResourceAsStream("templates/运营数据报表模板.xlsx");
         try {
             XSSFWorkbook excel = new XSSFWorkbook(in);
-            // 写入时间
             XSSFSheet sheet = excel.getSheetAt(0);
             sheet.getRow(1).getCell(1).setCellValue("时间: " + begin + " ~ " + end);
 
-            // 写入概览数据
             sheet.getRow(3).getCell(2).setCellValue(businessDataVO.getTurnover());
             sheet.getRow(3).getCell(4).setCellValue(businessDataVO.getOrderCompletionRate());
             sheet.getRow(3).getCell(6).setCellValue(businessDataVO.getNewUsers());
             sheet.getRow(4).getCell(2).setCellValue(businessDataVO.getValidOrderCount());
             sheet.getRow(4).getCell(4).setCellValue(businessDataVO.getUnitPrice());
 
-            // 填充明细数据
             for (int i = 0; i < 30; i++) {
                 LocalDate date = begin.plusDays(i);
-                // 查询每天的概览数据
-                BusinessDataVO businessData = workspaceService.getBusinessData(LocalDateTime.of(date, LocalTime.MIN),
+                BusinessDataVO businessData = workspaceService.getBusinessData(
+                        LocalDateTime.of(date, LocalTime.MIN),
                         LocalDateTime.of(date, LocalTime.MAX));
                 XSSFRow row = sheet.getRow(i + 7);
                 row.getCell(1).setCellValue(date.toString());
@@ -270,24 +202,46 @@ public class ReportServiceImpl implements ReportService {
                 row.getCell(6).setCellValue(businessData.getNewUsers());
             }
 
-            // 输出流下载文件
             ServletOutputStream out = resp.getOutputStream();
             excel.write(out);
-
             out.flush();
             out.close();
             excel.close();
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
-
             try {
-                in.close();
+                if (in != null) {
+                    in.close();
+                }
             } catch (Exception e2) {
                 e2.printStackTrace();
             }
         }
-
     }
 
+    private Integer getUserCount(LocalDateTime beginTime, LocalDateTime endTime) {
+        return Math.toIntExact(userMapper.selectCount(Wrappers.lambdaQuery(User.class)
+                .gt(beginTime != null, User::getCreateTime, beginTime)
+                .lt(endTime != null, User::getCreateTime, endTime)));
+    }
+
+    private Integer getOrderCount(LocalDateTime beginTime, LocalDateTime endTime, Integer status) {
+        return Math.toIntExact(orderMapper.selectCount(Wrappers.lambdaQuery(Orders.class)
+                .gt(beginTime != null, Orders::getOrderTime, beginTime)
+                .lt(endTime != null, Orders::getOrderTime, endTime)
+                .eq(status != null, Orders::getStatus, status)));
+    }
+
+    private Double sumCompletedOrderAmount(LocalDateTime beginTime, LocalDateTime endTime) {
+        List<Orders> orders = orderMapper.selectList(Wrappers.lambdaQuery(Orders.class)
+                .eq(Orders::getStatus, Orders.COMPLETED)
+                .gt(Orders::getOrderTime, beginTime)
+                .lt(Orders::getOrderTime, endTime));
+        return orders.stream()
+                .map(Orders::getAmount)
+                .filter(amount -> amount != null)
+                .mapToDouble(amount -> amount.doubleValue())
+                .sum();
+    }
 }

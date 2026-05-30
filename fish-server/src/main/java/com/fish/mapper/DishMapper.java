@@ -1,99 +1,21 @@
 package com.fish.mapper;
 
-import com.github.pagehelper.Page;
-import com.fish.annotation.AutoFill;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fish.dto.DishPageQueryDTO;
 import com.fish.entity.Dish;
-import com.fish.enumeration.OperationType;
-import com.fish.vo.DishVO;
-import org.apache.ibatis.annotations.Delete;
+import org.apache.commons.lang.StringUtils;
 import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Select;
-
-import java.util.List;
-import java.util.Map;
 
 @Mapper
-public interface DishMapper {
+public interface DishMapper extends BaseMapper<Dish> {
 
-    /**
-     * 根据分类id查询菜品数量
-     *
-     * @param categoryId
-     * @return
-     */
-    @Select("select count(id) from dish where category_id = #{categoryId}")
-    Integer countByCategoryId(Long categoryId);
-
-    /**
-     * 插入菜品数据
-     *
-     * @param dish
-     */
-    @AutoFill(value = OperationType.INSERT)
-    void insert(Dish dish);
-
-    /**
-     * 菜品分页查询
-     *
-     * @param dishPageQueryDTO
-     * @return
-     */
-    Page<DishVO> pageQuery(DishPageQueryDTO dishPageQueryDTO);
-
-    /**
-     * 根据主键查询菜品
-     *
-     * @param id
-     * @return
-     */
-    @Select("select * from dish where id = #{id}")
-    Dish getById(Long id);
-
-    /**
-     * 根据分类ID查询菜品
-     * @param categoryId
-     * @return
-     */
-    @Select("select * from dish where category_id = #{categoryId}")
-    List<Dish> getListById(Long categoryId);
-
-    /**
-     * 根据主键删除菜品数据
-     *
-     * @param id
-     */
-    @Delete("delete from dish where id = #{id}")
-    void deleteById(Long id);
-
-    /**
-     * 根据id动态修改菜品数据
-     *
-     * @param dish
-     */
-    @AutoFill(value = OperationType.UPDATE)
-    void update(Dish dish);
-
-    /**
-     * 动态条件查询菜品
-     *
-     * @param dish
-     * @return
-     */
-    List<Dish> list(Dish dish);
-
-    /**
-     * 根据套餐id查询菜品
-     * @param setmealId
-     * @return
-     */
-    @Select("select a.* from dish a left join setmeal_dish b on a.id = b.dish_id where b.setmeal_id = #{setmealId}")
-    List<Dish> getBySetmealId(Long setmealId);
-
-    /**
-     * 根据条件统计菜品数量
-     * @param map
-     * @return
-     */
-    Integer countByMap(Map map);
+    default Page<Dish> pageQuery(Page<Dish> page, DishPageQueryDTO dto) {
+        return selectPage(page, Wrappers.lambdaQuery(Dish.class)
+                .like(StringUtils.isNotBlank(dto.getName()), Dish::getName, dto.getName())
+                .eq(dto.getCategoryId() != null, Dish::getCategoryId, dto.getCategoryId())
+                .eq(dto.getStatus() != null, Dish::getStatus, dto.getStatus())
+                .orderByDesc(Dish::getCreateTime));
+    }
 }

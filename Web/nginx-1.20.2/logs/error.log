@@ -28,3 +28,7 @@
 2024/04/23 09:48:50 [error] 18136#5472: *195 client intended to send too large body: 1289565 bytes, client: 127.0.0.1, server: localhost, request: "POST /api/common/upload HTTP/1.1", host: "localhost", referrer: "http://localhost/"
 2024/04/23 09:51:09 [emerg] 17588#332: unknown directive "client_max_body_size:" in P:\Code\IT_Heima\sky-take-out\Web\nginx-1.20.2/conf/nginx.conf:20
 2024/04/23 09:51:22 [emerg] 3604#1516: unknown directive "client_max_body_size:" in P:\Code\IT_Heima\sky-take-out\Web\nginx-1.20.2/conf/nginx.conf:20
+2026/05/30 12:59:18 [emerg] 24528#436: CreateDirectory() "D:\PENG\Idea\IDEA project\fish_take_out\Web\nginx-1.20.2/temp/client_body_temp" failed (3: The system cannot find the path specified)
+2026/05/30 12:59:43 [emerg] 452#20548: CreateDirectory() "D:\PENG\Idea\IDEA project\fish_take_out\Web\nginx-1.20.2/temp/client_body_temp" failed (3: The system cannot find the path specified)
+2026/05/30 13:00:42 [emerg] 22920#24676: CreateDirectory() "D:\PENG\Idea\IDEA project\fish_take_out\Web\nginx-1.20.2/temp/client_body_temp" failed (3: The system cannot find the path specified)
+2026/05/30 16:29:58 [error] 2220#10280: *22 connect() failed (10061: No connection could be made because the target machine actively refused it) while connecting to upstream, client: 127.0.0.1, server: localhost, request: "POST /api/employee/login HTTP/1.1", upstream: "http://[::1]:8080/admin/employee/login", host: "localhost", referrer: "http://localhost/"

@@ -1,20 +1,24 @@
 package com.fish.service.impl;
 
-import com.github.pagehelper.PageHelper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fish.constant.MessageConstant;
 import com.fish.constant.StatusConstant;
 import com.fish.dto.DishDTO;
 import com.fish.dto.DishPageQueryDTO;
+import com.fish.entity.Category;
 import com.fish.entity.Dish;
 import com.fish.entity.DishFlavor;
+import com.fish.entity.SetmealDish;
 import com.fish.exception.DeletionNotAllowedException;
+import com.fish.mapper.CategoryMapper;
 import com.fish.mapper.DishFlavorMapper;
 import com.fish.mapper.DishMapper;
 import com.fish.mapper.SetmealDishMapper;
 import com.fish.result.PageResult;
 import com.fish.service.DishService;
 import com.fish.vo.DishVO;
-import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -23,219 +27,144 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
-@Slf4j
 public class DishServiceImpl implements DishService {
+
     @Autowired
     private DishMapper dishMapper;
     @Autowired
     private DishFlavorMapper dishFlavorMapper;
     @Autowired
     private SetmealDishMapper setmealDishMapper;
+    @Autowired
+    private CategoryMapper categoryMapper;
 
-    /**
-     * 新增菜品以及保存口味
-     *
-     * @param dishDTO
-     */
     @Override
+    @Transactional
     public void saveWithFlavor(DishDTO dishDTO) {
         Dish dish = new Dish();
         BeanUtils.copyProperties(dishDTO, dish);
-
-        // 向菜品表插入一条记录
         dishMapper.insert(dish);
 
-        // 获取insert生成的主键id
         Long dishId = dish.getId();
-
         List<DishFlavor> flavors = dishDTO.getFlavors();
         if (flavors != null && !flavors.isEmpty()) {
-            for (DishFlavor flavor : flavors) {
-                // 向口味表插入n个数据
-                flavor.setDishId(dishId);
-            }
-            dishFlavorMapper.insertBatch(flavors);
+            flavors.forEach(flavor -> flavor.setDishId(dishId));
+            flavors.forEach(dishFlavorMapper::insert);
         }
     }
 
-    /**
-     * 菜品分页查询
-     *
-     * @param dishPageQueryDTO
-     * @return
-     */
     @Override
     public PageResult pageQuery(DishPageQueryDTO dishPageQueryDTO) {
-        PageHelper.startPage(dishPageQueryDTO.getPage(), dishPageQueryDTO.getPageSize());
-
-        List<DishVO> dishVOList = dishMapper.pageQuery(dishPageQueryDTO);
-
-        PageResult pageResult = new PageResult();
-        pageResult.setTotal(dishVOList.size());
-        pageResult.setRecords(dishVOList);
-
-        return pageResult;
+        Page<Dish> page = new Page<>(dishPageQueryDTO.getPage(), dishPageQueryDTO.getPageSize());
+        page = dishMapper.pageQuery(page, dishPageQueryDTO);
+        List<DishVO> dishVOList = buildDishVOList(page.getRecords());
+        return new PageResult(page.getTotal(), dishVOList);
     }
 
-    /**
-     * 分页查询菜品
-     *
-     * @param dishPageQueryDTO
-     */
-    // @Override
-    // public PageResult<DishVO> queryPage(DishPageQueryDTO dishPageQueryDTO) {
-    //     return null;
-    // }
-
-    /**
-     * 删除菜品
-     *
-     * @param ids
-     */
     @Override
-    // 事务一致性
     @Transactional
     public void deleteBatch(Long[] ids) {
-        // 判断菜品是否被套餐关联
-        for (Long id: ids) {
-            Dish dish = dishMapper.getById(id);
+        for (Long id : ids) {
+            Dish dish = dishMapper.selectById(id);
             if (Objects.equals(dish.getStatus(), StatusConstant.ENABLE)) {
-                // 正在销售的菜品不能删除
                 throw new DeletionNotAllowedException(MessageConstant.DISH_ON_SALE);
             }
         }
 
-        // 判断菜品是否被套餐关联
-        List<Long> setmealIdsByDishIds = setmealDishMapper.getSetmealIdsByDishIds(Arrays.asList(ids));
-        if (setmealIdsByDishIds != null && !setmealIdsByDishIds.isEmpty()) {
-            // 菜品被套餐关联，不能删除
+        List<SetmealDish> setmealDishes = setmealDishMapper.selectList(
+                Wrappers.lambdaQuery(SetmealDish.class).in(SetmealDish::getDishId, Arrays.asList(ids)));
+        if (setmealDishes != null && !setmealDishes.isEmpty()) {
             throw new DeletionNotAllowedException(MessageConstant.DISH_BE_RELATED_BY_SETMEAL);
         }
 
-        // 删除菜品表的菜品数据
-        for (Long id: ids) {
+        for (Long id : ids) {
             dishMapper.deleteById(id);
-
-            // 删除菜品关联的口味数据
-            dishFlavorMapper.deleteByDishId(id);
+            dishFlavorMapper.delete(Wrappers.lambdaQuery(DishFlavor.class).eq(DishFlavor::getDishId, id));
         }
     }
 
-    /**
-     * 根据id查询菜品
-     *
-     * @param id
-     * @return
-     */
     @Override
     public DishVO getByIdWithFlavor(Long id) {
-        Dish dish = dishMapper.getById(id);
+        Dish dish = dishMapper.selectById(id);
         DishVO dishVO = new DishVO();
-
         if (dish != null) {
             BeanUtils.copyProperties(dish, dishVO);
-            // 查询菜品对应的口味数据，从dish_flavor表查询
-            List<DishFlavor> flavors = dishFlavorMapper.getByDishId(id);
+            List<DishFlavor> flavors = dishFlavorMapper.selectList(
+                    Wrappers.lambdaQuery(DishFlavor.class).eq(DishFlavor::getDishId, id));
             dishVO.setFlavors(flavors);
         }
-
         return dishVO;
     }
 
-    /**
-     * 更新菜品以及口味
-     *
-     * @param dishDTO
-     */
     @Override
+    @Transactional
     public void updateWithFlavor(DishDTO dishDTO) {
         Dish dish = new Dish();
         BeanUtils.copyProperties(dishDTO, dish);
+        dishMapper.updateById(dish);
 
-        // 修改菜品表基本信息
-        dishMapper.update(dish);
-
-        // 删除原有口味数据
-        dishFlavorMapper.deleteByDishId(dish.getId());
+        dishFlavorMapper.delete(Wrappers.lambdaQuery(DishFlavor.class).eq(DishFlavor::getDishId, dish.getId()));
 
         List<DishFlavor> flavors = dishDTO.getFlavors();
         if (flavors != null && !flavors.isEmpty()) {
-            // 批量插入n条数据
-            flavors.forEach(flavor -> {
-                flavor.setDishId(dish.getId());
-            });
-            dishFlavorMapper.insertBatch(flavors);
+            flavors.forEach(flavor -> flavor.setDishId(dish.getId()));
+            flavors.forEach(dishFlavorMapper::insert);
         }
     }
 
-    /**
-     * 启用或禁用菜品
-     *
-     * @param status
-     * @param id
-     */
     @Override
     public void startOrStop(Integer status, Long id) {
-
+        dishMapper.update(null, Wrappers.lambdaUpdate(Dish.class)
+                .eq(Dish::getId, id)
+                .set(Dish::getStatus, status));
     }
 
-    /**
-     * 根据分类id查询菜品
-     *
-     * @param categoryId
-     * @return
-     */
     @Override
     public List<Dish> list(Long categoryId) {
-        return dishMapper.getListById(categoryId);
+        return dishMapper.selectList(Wrappers.lambdaQuery(Dish.class)
+                .eq(Dish::getCategoryId, categoryId));
     }
 
-    /**
-     * 条件查询菜品和口味
-     * @param dish
-     * @return
-     */
+    @Override
     public List<DishVO> listWithFlavor(Dish dish) {
-        List<Dish> dishList = dishMapper.list(dish);
+        List<Dish> dishList = dishMapper.selectList(Wrappers.lambdaQuery(Dish.class)
+                .like(StringUtils.isNotBlank(dish.getName()), Dish::getName, dish.getName())
+                .eq(dish.getCategoryId() != null, Dish::getCategoryId, dish.getCategoryId())
+                .eq(dish.getStatus() != null, Dish::getStatus, dish.getStatus())
+                .orderByDesc(Dish::getCreateTime));
 
         List<DishVO> dishVOList = new ArrayList<>();
-
         for (Dish d : dishList) {
             DishVO dishVO = new DishVO();
-            BeanUtils.copyProperties(d,dishVO);
-
-            //根据菜品id查询对应的口味
-            List<DishFlavor> flavors = dishFlavorMapper.getByDishId(d.getId());
-
+            BeanUtils.copyProperties(d, dishVO);
+            List<DishFlavor> flavors = dishFlavorMapper.selectList(
+                    Wrappers.lambdaQuery(DishFlavor.class).eq(DishFlavor::getDishId, d.getId()));
             dishVO.setFlavors(flavors);
             dishVOList.add(dishVO);
         }
-
         return dishVOList;
     }
 
-    /**
-     * 根据分类id查询菜品
-     *
-     * @param categoryId
-     * @return
-     */
-    // @Override
-    // public List<Dish> list(Long categoryId) {
-    //     // return List.of();
-    // }
+    private List<DishVO> buildDishVOList(List<Dish> dishes) {
+        if (dishes == null || dishes.isEmpty()) {
+            return new ArrayList<>();
+        }
+        List<Long> categoryIds = dishes.stream().map(Dish::getCategoryId).distinct().collect(Collectors.toList());
+        Map<Long, String> categoryNameMap = categoryMapper.selectBatchIds(categoryIds).stream()
+                .collect(Collectors.toMap(Category::getId, Category::getName));
 
-    /**
-     * 条件查询菜品和口味
-     *
-     * @param dish
-     * @return
-     */
-    // @Override
-    // public List<DishVO> listWithFlavor(Dish dish) {
-    //     // return List.of();
-    // }
+        List<DishVO> dishVOList = new ArrayList<>();
+        for (Dish dish : dishes) {
+            DishVO dishVO = new DishVO();
+            BeanUtils.copyProperties(dish, dishVO);
+            dishVO.setCategoryName(categoryNameMap.get(dish.getCategoryId()));
+            dishVOList.add(dishVO);
+        }
+        return dishVOList;
+    }
 }

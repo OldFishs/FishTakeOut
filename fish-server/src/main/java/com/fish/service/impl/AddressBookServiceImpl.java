@@ -1,10 +1,10 @@
 package com.fish.service.impl;
 
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fish.context.BaseContext;
 import com.fish.entity.AddressBook;
 import com.fish.mapper.AddressBookMapper;
 import com.fish.service.AddressBookService;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,76 +12,57 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 @Service
-@Slf4j
 public class AddressBookServiceImpl implements AddressBookService {
+
     @Autowired
     private AddressBookMapper addressBookMapper;
 
-    /**
-     * 条件查询
-     *
-     * @param addressBook
-     * @return
-     */
+    @Override
     public List<AddressBook> list(AddressBook addressBook) {
-        return addressBookMapper.list(addressBook);
+        return addressBookMapper.selectList(Wrappers.lambdaQuery(AddressBook.class)
+                .eq(addressBook.getUserId() != null, AddressBook::getUserId, addressBook.getUserId())
+                .eq(addressBook.getPhone() != null, AddressBook::getPhone, addressBook.getPhone())
+                .eq(addressBook.getIsDefault() != null, AddressBook::getIsDefault, addressBook.getIsDefault()));
     }
 
-    /**
-     * 新增地址
-     *
-     * @param addressBook
-     */
+    @Override
     public void save(AddressBook addressBook) {
         addressBook.setUserId(BaseContext.getCurrentId());
         addressBook.setIsDefault(0);
         addressBookMapper.insert(addressBook);
     }
 
-    /**
-     * 根据id查询
-     *
-     * @param id
-     * @return
-     */
+    @Override
     public AddressBook getById(Long id) {
-        AddressBook addressBook = addressBookMapper.getById(id);
-        return addressBook;
+        return addressBookMapper.selectById(id);
     }
 
-    /**
-     * 根据id修改地址
-     *
-     * @param addressBook
-     */
+    @Override
     public void update(AddressBook addressBook) {
-        addressBookMapper.update(addressBook);
+        addressBookMapper.update(null, Wrappers.lambdaUpdate(AddressBook.class)
+                .eq(AddressBook::getId, addressBook.getId())
+                .set(addressBook.getConsignee() != null, AddressBook::getConsignee, addressBook.getConsignee())
+                .set(addressBook.getSex() != null, AddressBook::getSex, addressBook.getSex())
+                .set(addressBook.getPhone() != null, AddressBook::getPhone, addressBook.getPhone())
+                .set(addressBook.getDetail() != null, AddressBook::getDetail, addressBook.getDetail())
+                .set(addressBook.getLabel() != null, AddressBook::getLabel, addressBook.getLabel())
+                .set(addressBook.getIsDefault() != null, AddressBook::getIsDefault, addressBook.getIsDefault()));
     }
 
-    /**
-     * 设置默认地址
-     *
-     * @param addressBook
-     */
+    @Override
     @Transactional
     public void setDefault(AddressBook addressBook) {
-        //1、将当前用户的所有地址修改为非默认地址 update address_book set is_default = ? where user_id = ?
-        addressBook.setIsDefault(0);
-        addressBook.setUserId(BaseContext.getCurrentId());
-        addressBookMapper.updateIsDefaultByUserId(addressBook);
+        addressBookMapper.update(null, Wrappers.lambdaUpdate(AddressBook.class)
+                .eq(AddressBook::getUserId, BaseContext.getCurrentId())
+                .set(AddressBook::getIsDefault, 0));
 
-        //2、将当前地址改为默认地址 update address_book set is_default = ? where id = ?
-        addressBook.setIsDefault(1);
-        addressBookMapper.update(addressBook);
+        addressBookMapper.update(null, Wrappers.lambdaUpdate(AddressBook.class)
+                .eq(AddressBook::getId, addressBook.getId())
+                .set(AddressBook::getIsDefault, 1));
     }
 
-    /**
-     * 根据id删除地址
-     *
-     * @param id
-     */
+    @Override
     public void deleteById(Long id) {
         addressBookMapper.deleteById(id);
     }
-
 }

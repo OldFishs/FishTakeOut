@@ -1,7 +1,11 @@
 package com.fish.service.impl;
 
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fish.constant.StatusConstant;
+import com.fish.entity.Dish;
 import com.fish.entity.Orders;
+import com.fish.entity.Setmeal;
+import com.fish.entity.User;
 import com.fish.mapper.DishMapper;
 import com.fish.mapper.OrderMapper;
 import com.fish.mapper.SetmealMapper;
@@ -13,10 +17,12 @@ import com.fish.vo.OrderOverViewVO;
 import com.fish.vo.SetmealOverViewVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
+import java.util.Objects;
 
 @Service
 public class WorkspaceServiceImpl implements WorkspaceService {
@@ -30,49 +36,22 @@ public class WorkspaceServiceImpl implements WorkspaceService {
     @Autowired
     private SetmealMapper setmealMapper;
 
-    /**
-     * 根据时间段统计营业数据
-     *
-     * @param begin
-     * @param end
-     * @return
-     */
+    @Override
     public BusinessDataVO getBusinessData(LocalDateTime begin, LocalDateTime end) {
-        /**
-         * 营业额：当日已完成订单的总金额
-         * 有效订单：当日已完成订单的数量
-         * 订单完成率：有效订单数 / 总订单数
-         * 平均客单价：营业额 / 有效订单数
-         * 新增用户：当日新增用户的数量
-         */
+        Integer totalOrderCount = Math.toIntExact(countOrders(begin, end, null));
 
-        Map<String, Object> map = new HashMap<>();
-        map.put("begin", begin);
-        map.put("end", end);
-
-        // 查询总订单数
-        Integer totalOrderCount = orderMapper.countByMap(map);
-
-        map.put("status", Orders.COMPLETED);
-        // 营业额
-        Double turnover = orderMapper.sumByMap(map);
+        Integer validOrderCount = Math.toIntExact(countOrders(begin, end, Orders.COMPLETED));
+        Double turnover = sumOrderAmount(begin, end, Orders.COMPLETED);
         turnover = turnover == null ? 0.0 : turnover;
 
-        // 有效订单数
-        Integer validOrderCount = orderMapper.countByMap(map);
-
         Double unitPrice = 0.0;
-
         Double orderCompletionRate = 0.0;
         if (totalOrderCount != 0 && validOrderCount != 0) {
-            // 订单完成率
             orderCompletionRate = validOrderCount.doubleValue() / totalOrderCount;
-            // 平均客单价
             unitPrice = Double.parseDouble(String.format("%.2f", turnover / validOrderCount));
         }
 
-        // 新增用户数
-        Integer newUsers = userMapper.countByMap(map);
+        Integer newUsers = Math.toIntExact(countUsers(begin, end));
 
         return BusinessDataVO.builder()
                 .turnover(turnover)
@@ -83,34 +62,15 @@ public class WorkspaceServiceImpl implements WorkspaceService {
                 .build();
     }
 
-    /**
-     * 查询订单管理数据
-     *
-     * @return
-     */
+    @Override
     public OrderOverViewVO getOrderOverView() {
-        Map<String, Object> map = new HashMap<>();
-        map.put("begin", LocalDateTime.now().with(LocalTime.MIN));
-        map.put("status", Orders.TO_BE_CONFIRMED);
+        LocalDateTime begin = LocalDateTime.now().with(LocalTime.MIN);
 
-        // 待接单
-        Integer waitingOrders = orderMapper.countByMap(map);
-
-        // 待派送
-        map.put("status", Orders.CONFIRMED);
-        Integer deliveredOrders = orderMapper.countByMap(map);
-
-        // 已完成
-        map.put("status", Orders.COMPLETED);
-        Integer completedOrders = orderMapper.countByMap(map);
-
-        // 已取消
-        map.put("status", Orders.CANCELLED);
-        Integer cancelledOrders = orderMapper.countByMap(map);
-
-        // 全部订单
-        map.put("status", null);
-        Integer allOrders = orderMapper.countByMap(map);
+        Integer waitingOrders = Math.toIntExact(countOrders(begin, null, Orders.TO_BE_CONFIRMED));
+        Integer deliveredOrders = Math.toIntExact(countOrders(begin, null, Orders.CONFIRMED));
+        Integer completedOrders = Math.toIntExact(countOrders(begin, null, Orders.COMPLETED));
+        Integer cancelledOrders = Math.toIntExact(countOrders(begin, null, Orders.CANCELLED));
+        Integer allOrders = Math.toIntExact(countOrders(begin, null, null));
 
         return OrderOverViewVO.builder()
                 .waitingOrders(waitingOrders)
@@ -121,18 +81,12 @@ public class WorkspaceServiceImpl implements WorkspaceService {
                 .build();
     }
 
-    /**
-     * 查询菜品总览
-     *
-     * @return
-     */
+    @Override
     public DishOverViewVO getDishOverView() {
-        Map<String, Integer> map = new HashMap<>();
-        map.put("status", StatusConstant.ENABLE);
-        Integer sold = dishMapper.countByMap(map);
-
-        map.put("status", StatusConstant.DISABLE);
-        Integer discontinued = dishMapper.countByMap(map);
+        Integer sold = Math.toIntExact(dishMapper.selectCount(
+                Wrappers.lambdaQuery(Dish.class).eq(Dish::getStatus, StatusConstant.ENABLE)));
+        Integer discontinued = Math.toIntExact(dishMapper.selectCount(
+                Wrappers.lambdaQuery(Dish.class).eq(Dish::getStatus, StatusConstant.DISABLE)));
 
         return DishOverViewVO.builder()
                 .sold(sold)
@@ -140,22 +94,41 @@ public class WorkspaceServiceImpl implements WorkspaceService {
                 .build();
     }
 
-    /**
-     * 查询套餐总览
-     *
-     * @return
-     */
+    @Override
     public SetmealOverViewVO getSetmealOverView() {
-        Map<String, Integer> map = new HashMap<>();
-        map.put("status", StatusConstant.ENABLE);
-        Integer sold = setmealMapper.countByMap(map);
-
-        map.put("status", StatusConstant.DISABLE);
-        Integer discontinued = setmealMapper.countByMap(map);
+        Integer sold = Math.toIntExact(setmealMapper.selectCount(
+                Wrappers.lambdaQuery(Setmeal.class).eq(Setmeal::getStatus, StatusConstant.ENABLE)));
+        Integer discontinued = Math.toIntExact(setmealMapper.selectCount(
+                Wrappers.lambdaQuery(Setmeal.class).eq(Setmeal::getStatus, StatusConstant.DISABLE)));
 
         return SetmealOverViewVO.builder()
                 .sold(sold)
                 .discontinued(discontinued)
                 .build();
+    }
+
+    private Long countOrders(LocalDateTime begin, LocalDateTime end, Integer status) {
+        return orderMapper.selectCount(Wrappers.lambdaQuery(Orders.class)
+                .gt(begin != null, Orders::getOrderTime, begin)
+                .lt(end != null, Orders::getOrderTime, end)
+                .eq(status != null, Orders::getStatus, status));
+    }
+
+    private Double sumOrderAmount(LocalDateTime begin, LocalDateTime end, Integer status) {
+        List<Orders> orders = orderMapper.selectList(Wrappers.lambdaQuery(Orders.class)
+                .gt(begin != null, Orders::getOrderTime, begin)
+                .lt(end != null, Orders::getOrderTime, end)
+                .eq(status != null, Orders::getStatus, status));
+        return orders.stream()
+                .map(Orders::getAmount)
+                .filter(Objects::nonNull)
+                .mapToDouble(BigDecimal::doubleValue)
+                .sum();
+    }
+
+    private Long countUsers(LocalDateTime begin, LocalDateTime end) {
+        return userMapper.selectCount(Wrappers.lambdaQuery(User.class)
+                .gt(begin != null, User::getCreateTime, begin)
+                .lt(end != null, User::getCreateTime, end));
     }
 }
