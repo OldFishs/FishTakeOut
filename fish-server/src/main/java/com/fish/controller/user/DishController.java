@@ -1,10 +1,10 @@
 package com.fish.controller.user;
 
 import com.fish.constant.StatusConstant;
-import com.fish.entity.Dish;
+import com.fish.entity.DishDO;
 import com.fish.result.Result;
 import com.fish.service.DishService;
-import com.fish.vo.DishVO;
+import com.fish.resp.DishVO;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
@@ -45,7 +45,7 @@ public class DishController {
         }
 
         // redis中不存在，先从数据库中查询
-        Dish dish = new Dish();
+        DishDO dish = new DishDO();
         dish.setCategoryId(categoryId);
         dish.setStatus(StatusConstant.ENABLE);//查询起售中的菜品
 

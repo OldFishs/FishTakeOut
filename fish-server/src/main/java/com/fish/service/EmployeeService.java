@@ -1,9 +1,9 @@
 package com.fish.service;
 
-import com.fish.dto.EmployeeDTO;
-import com.fish.dto.EmployeeLoginDTO;
-import com.fish.dto.EmployeePageQueryDTO;
-import com.fish.entity.Employee;
+import com.fish.req.Employee;
+import com.fish.req.EmployeeLogin;
+import com.fish.req.EmployeePageQuery;
+import com.fish.entity.EmployeeDO;
 import com.fish.result.PageResult;
 
 public interface EmployeeService {
@@ -13,20 +13,20 @@ public interface EmployeeService {
      * @param employeeLoginDTO
      * @return
      */
-    Employee login(EmployeeLoginDTO employeeLoginDTO);
+    EmployeeDO login(EmployeeLogin employeeLoginDTO);
 
     /**
      * 新增员工
      * @param employeeDTO
      */
-    void save(EmployeeDTO employeeDTO);
+    void save(Employee employeeDTO);
 
     /**
      * 分页查询
      * @param employeePageQueryDTO
      * @return
      */
-    PageResult pageQuery(EmployeePageQueryDTO employeePageQueryDTO);
+    PageResult pageQuery(EmployeePageQuery employeePageQueryDTO);
 
     /**
      * 启用禁用员工账号
@@ -40,11 +40,11 @@ public interface EmployeeService {
      * @param id
      * @return
      */
-    Employee getById(Long id);
+    EmployeeDO getById(Long id);
 
     /**
      * 编辑员工信息
      * @param employeeDTO
      */
-    void update(EmployeeDTO employeeDTO);
+    void update(Employee employeeDTO);
 }

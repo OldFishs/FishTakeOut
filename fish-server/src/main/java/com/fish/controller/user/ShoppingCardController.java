@@ -1,6 +1,6 @@
 package com.fish.controller.user;
 
-import com.fish.dto.ShoppingCartDTO;
+import com.fish.req.ShoppingCart;
 import com.fish.result.Result;
 import com.fish.service.ShoppingCartService;
 import io.swagger.annotations.Api;
@@ -20,7 +20,7 @@ public class ShoppingCardController {
 
     @PostMapping("/add")
     @ApiOperation("添加购物车")
-    public Result add(@RequestBody ShoppingCartDTO shoppingCartDTO) {
+    public Result add(@RequestBody ShoppingCart shoppingCartDTO) {
         log.info("添加购物车:{}", shoppingCartDTO);
         shoppingCartService.addShoppingCart(shoppingCartDTO);
         return Result.success();
@@ -41,7 +41,7 @@ public class ShoppingCardController {
 
     @PostMapping("sub")
     @ApiOperation("购物车-删除商品")
-    public Result sub(@RequestBody ShoppingCartDTO shoppingCartDTO) {
+    public Result sub(@RequestBody ShoppingCart shoppingCartDTO) {
         log.info("购物车-删除商品:{}", shoppingCartDTO);
         shoppingCartService.subShoppingCart(shoppingCartDTO);
         return Result.success();

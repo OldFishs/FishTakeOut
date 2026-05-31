@@ -1,16 +1,16 @@
 package com.fish.controller.admin;
 
 import com.fish.constant.JwtClaimsConstant;
-import com.fish.dto.EmployeeDTO;
-import com.fish.dto.EmployeeLoginDTO;
-import com.fish.dto.EmployeePageQueryDTO;
-import com.fish.entity.Employee;
+import com.fish.req.Employee;
+import com.fish.req.EmployeeLogin;
+import com.fish.req.EmployeePageQuery;
+import com.fish.entity.EmployeeDO;
 import com.fish.properties.JwtProperties;
 import com.fish.result.PageResult;
 import com.fish.result.Result;
 import com.fish.service.EmployeeService;
 import com.fish.utils.JwtUtil;
-import com.fish.vo.EmployeeLoginVO;
+import com.fish.resp.EmployeeLoginVO;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
@@ -42,10 +42,10 @@ public class EmployeeController {
      */
     @PostMapping("/login")
     @ApiOperation("员工登录")
-    public Result<EmployeeLoginVO> login(@RequestBody EmployeeLoginDTO employeeLoginDTO) {
+    public Result<EmployeeLoginVO> login(@RequestBody EmployeeLogin employeeLoginDTO) {
         log.info("员工登录：{}", employeeLoginDTO);
 
-        Employee employee = employeeService.login(employeeLoginDTO);
+        EmployeeDO employee = employeeService.login(employeeLoginDTO);
 
         //登录成功后，生成jwt令牌
         Map<String, Object> claims = new HashMap<>();
@@ -67,7 +67,7 @@ public class EmployeeController {
 
     @PostMapping
     @ApiOperation(value = "新增员工")
-    public Result save(@RequestBody EmployeeDTO employeeDTO) {
+    public Result save(@RequestBody Employee employeeDTO) {
         log.info("新增员工{}", employeeDTO);
         employeeService.save(employeeDTO);
         return Result.success();
@@ -75,7 +75,7 @@ public class EmployeeController {
 
     @GetMapping("/page")
     @ApiOperation(value = "员工分页查询")
-    public Result<PageResult> page(EmployeePageQueryDTO employeePageQueryDTO) {
+    public Result<PageResult> page(EmployeePageQuery employeePageQueryDTO) {
         log.info("分页查询{}", employeePageQueryDTO);
         PageResult result = employeeService.pageQuery(employeePageQueryDTO);
         return Result.success(result);
@@ -91,15 +91,15 @@ public class EmployeeController {
 
     @GetMapping("/{id}")
     @ApiOperation("根据ID查询员工信息")
-    public Result<Employee> getById(@PathVariable("id") Long id) {
+    public Result<EmployeeDO> getById(@PathVariable("id") Long id) {
         log.info("根据ID查询员工信息{}", id);
-        Employee employee = employeeService.getById(id);
+        EmployeeDO employee = employeeService.getById(id);
         return Result.success(employee);
     }
 
     @PutMapping
     @ApiOperation(value = "修改员工信息")
-    public Result update(@RequestBody EmployeeDTO employeeDTO) {
+    public Result update(@RequestBody Employee employeeDTO) {
         log.info("修改员工信息{}", employeeDTO);
         employeeService.update(employeeDTO);
         return Result.success();

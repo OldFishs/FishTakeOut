@@ -1,7 +1,7 @@
 package com.fish.service;
 
-import com.fish.dto.ShoppingCartDTO;
-import com.fish.entity.ShoppingCart;
+import com.fish.req.ShoppingCart;
+import com.fish.entity.ShoppingCartDO;
 
 import java.util.List;
 
@@ -11,13 +11,13 @@ public interface ShoppingCartService {
      * 添加购物车
      * @param shoppingCartDTO
      */
-    void addShoppingCart(ShoppingCartDTO shoppingCartDTO);
+    void addShoppingCart(ShoppingCart shoppingCartDTO);
 
     /**
      * 查看购物车
      * @return
      */
-    List<ShoppingCart> showShoppingCart();
+    List<ShoppingCartDO> showShoppingCart();
 
     /**
      * 清空购物车
@@ -28,5 +28,5 @@ public interface ShoppingCartService {
      * 删除购物车中一个商品
      * @param shoppingCartDTO
      */
-    void subShoppingCart(ShoppingCartDTO shoppingCartDTO);
+    void subShoppingCart(ShoppingCart shoppingCartDTO);
 }

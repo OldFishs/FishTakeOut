@@ -5,11 +5,11 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fish.constant.MessageConstant;
 import com.fish.constant.StatusConstant;
 import com.fish.context.BaseContext;
-import com.fish.dto.CategoryDTO;
-import com.fish.dto.CategoryPageQueryDTO;
-import com.fish.entity.Category;
-import com.fish.entity.Dish;
-import com.fish.entity.Setmeal;
+import com.fish.req.Category;
+import com.fish.req.CategoryPageQuery;
+import com.fish.entity.CategoryDO;
+import com.fish.entity.DishDO;
+import com.fish.entity.SetmealDO;
 import com.fish.exception.DeletionNotAllowedException;
 import com.fish.mapper.CategoryMapper;
 import com.fish.mapper.DishMapper;
@@ -37,8 +37,8 @@ public class CategoryServiceImpl implements CategoryService {
     private SetmealMapper setmealMapper;
 
     @Override
-    public void save(CategoryDTO categoryDTO) {
-        Category category = new Category();
+    public void save(Category categoryDTO) {
+        CategoryDO category = new CategoryDO();
         BeanUtils.copyProperties(categoryDTO, category);
         category.setStatus(StatusConstant.DISABLE);
         category.setCreateTime(LocalDateTime.now());
@@ -49,20 +49,20 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public PageResult pageQuery(CategoryPageQueryDTO categoryPageQueryDTO) {
-        Page<Category> page = new Page<>(categoryPageQueryDTO.getPage(), categoryPageQueryDTO.getPageSize());
+    public PageResult pageQuery(CategoryPageQuery categoryPageQueryDTO) {
+        Page<CategoryDO> page = new Page<>(categoryPageQueryDTO.getPage(), categoryPageQueryDTO.getPageSize());
         page = categoryMapper.pageQuery(page, categoryPageQueryDTO);
         return new PageResult(page.getTotal(), page.getRecords());
     }
 
     @Override
     public void deleteById(Long id) {
-        Long dishCount = dishMapper.selectCount(Wrappers.lambdaQuery(Dish.class).eq(Dish::getCategoryId, id));
+        Long dishCount = dishMapper.selectCount(Wrappers.lambdaQuery(DishDO.class).eq(DishDO::getCategoryId, id));
         if (dishCount > 0) {
             throw new DeletionNotAllowedException(MessageConstant.CATEGORY_BE_RELATED_BY_DISH);
         }
 
-        Long setmealCount = setmealMapper.selectCount(Wrappers.lambdaQuery(Setmeal.class).eq(Setmeal::getCategoryId, id));
+        Long setmealCount = setmealMapper.selectCount(Wrappers.lambdaQuery(SetmealDO.class).eq(SetmealDO::getCategoryId, id));
         if (setmealCount > 0) {
             throw new DeletionNotAllowedException(MessageConstant.CATEGORY_BE_RELATED_BY_SETMEAL);
         }
@@ -71,34 +71,34 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public void update(CategoryDTO categoryDTO) {
-        Category category = new Category();
+    public void update(Category categoryDTO) {
+        CategoryDO category = new CategoryDO();
         BeanUtils.copyProperties(categoryDTO, category);
-        categoryMapper.update(null, Wrappers.lambdaUpdate(Category.class)
-                .eq(Category::getId, category.getId())
-                .set(category.getType() != null, Category::getType, category.getType())
-                .set(StringUtils.isNotBlank(category.getName()), Category::getName, category.getName())
-                .set(category.getSort() != null, Category::getSort, category.getSort())
-                .set(category.getStatus() != null, Category::getStatus, category.getStatus())
-                .set(Category::getUpdateTime, LocalDateTime.now())
-                .set(Category::getUpdateUser, BaseContext.getCurrentId()));
+        categoryMapper.update(null, Wrappers.lambdaUpdate(CategoryDO.class)
+                .eq(CategoryDO::getId, category.getId())
+                .set(category.getType() != null, CategoryDO::getType, category.getType())
+                .set(StringUtils.isNotBlank(category.getName()), CategoryDO::getName, category.getName())
+                .set(category.getSort() != null, CategoryDO::getSort, category.getSort())
+                .set(category.getStatus() != null, CategoryDO::getStatus, category.getStatus())
+                .set(CategoryDO::getUpdateTime, LocalDateTime.now())
+                .set(CategoryDO::getUpdateUser, BaseContext.getCurrentId()));
     }
 
     @Override
     public void startOrStop(Integer status, Long id) {
-        categoryMapper.update(null, Wrappers.lambdaUpdate(Category.class)
-                .eq(Category::getId, id)
-                .set(Category::getStatus, status)
-                .set(Category::getUpdateTime, LocalDateTime.now())
-                .set(Category::getUpdateUser, BaseContext.getCurrentId()));
+        categoryMapper.update(null, Wrappers.lambdaUpdate(CategoryDO.class)
+                .eq(CategoryDO::getId, id)
+                .set(CategoryDO::getStatus, status)
+                .set(CategoryDO::getUpdateTime, LocalDateTime.now())
+                .set(CategoryDO::getUpdateUser, BaseContext.getCurrentId()));
     }
 
     @Override
-    public List<Category> list(Integer type) {
-        return categoryMapper.selectList(Wrappers.lambdaQuery(Category.class)
-                .eq(Category::getStatus, StatusConstant.ENABLE)
-                .eq(type != null, Category::getType, type)
-                .orderByAsc(Category::getSort)
-                .orderByDesc(Category::getCreateTime));
+    public List<CategoryDO> list(Integer type) {
+        return categoryMapper.selectList(Wrappers.lambdaQuery(CategoryDO.class)
+                .eq(CategoryDO::getStatus, StatusConstant.ENABLE)
+                .eq(type != null, CategoryDO::getType, type)
+                .orderByAsc(CategoryDO::getSort)
+                .orderByDesc(CategoryDO::getCreateTime));
     }
 }

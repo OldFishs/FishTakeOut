@@ -1,13 +1,13 @@
 package com.fish.controller.admin;
 
-import com.fish.dto.DishDTO;
-import com.fish.dto.DishPageQueryDTO;
-import com.fish.entity.Dish;
+import com.fish.req.Dish;
+import com.fish.req.DishPageQuery;
+import com.fish.entity.DishDO;
 import com.fish.mapper.DishMapper;
 import com.fish.result.PageResult;
 import com.fish.result.Result;
 import com.fish.service.DishService;
-import com.fish.vo.DishVO;
+import com.fish.resp.DishVO;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
@@ -32,7 +32,7 @@ public class DishController {
 
     @PostMapping
     @ApiOperation("新增菜品")
-    public Result save(@RequestBody DishDTO dishDTO) {
+    public Result save(@RequestBody Dish dishDTO) {
         log.info("新增菜品：{}", dishDTO);
         dishService.saveWithFlavor(dishDTO);
         return Result.success();
@@ -40,7 +40,7 @@ public class DishController {
 
     @GetMapping("/page")
     @ApiOperation("菜品分页查询")
-    public Result<PageResult> page(DishPageQueryDTO dishPageQueryDTO) {
+    public Result<PageResult> page(DishPageQuery dishPageQueryDTO) {
         log.info("菜品分页查询：{}", dishPageQueryDTO);
         dishPageQueryDTO.setPageSize(100000);
         return Result.success(dishService.pageQuery(dishPageQueryDTO));
@@ -86,7 +86,7 @@ public class DishController {
 
     @PutMapping
     @ApiOperation("更新菜品信息")
-    public Result update(@RequestBody DishDTO dishDTO) {
+    public Result update(@RequestBody Dish dishDTO) {
         log.info("更新菜品信息：{}", dishDTO);
 
         // 更新缓存数据
@@ -104,8 +104,8 @@ public class DishController {
      * @return
      */
     @GetMapping("/list")
-    public Result<List<Dish>> list(Long categoryId) {
-        List<Dish> dishList = dishService.list(categoryId);
+    public Result<List<DishDO>> list(Long categoryId) {
+        List<DishDO> dishList = dishService.list(categoryId);
         return Result.success(dishList);
     }
 

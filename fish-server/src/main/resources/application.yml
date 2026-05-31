@@ -16,6 +16,15 @@ spring:
     host: ${fish.redis.host}
     port: ${fish.redis.port}
 
+easy-trans:
+  is-enable-redis: true
+  is-enable-global: true
+  is-enable-tile: true
+  dict-use-redis: true
+  is-enable-map-result: true
+  db-type: mysql
+  mp-new: true
+
 mybatis-plus:
   type-aliases-package: com.fish.entity
   configuration:

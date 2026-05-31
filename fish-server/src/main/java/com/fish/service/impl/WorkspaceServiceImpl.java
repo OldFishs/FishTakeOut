@@ -2,19 +2,19 @@ package com.fish.service.impl;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fish.constant.StatusConstant;
-import com.fish.entity.Dish;
-import com.fish.entity.Orders;
-import com.fish.entity.Setmeal;
-import com.fish.entity.User;
+import com.fish.entity.DishDO;
+import com.fish.entity.OrdersDO;
+import com.fish.entity.SetmealDO;
+import com.fish.entity.UserDO;
 import com.fish.mapper.DishMapper;
 import com.fish.mapper.OrderMapper;
 import com.fish.mapper.SetmealMapper;
 import com.fish.mapper.UserMapper;
 import com.fish.service.WorkspaceService;
-import com.fish.vo.BusinessDataVO;
-import com.fish.vo.DishOverViewVO;
-import com.fish.vo.OrderOverViewVO;
-import com.fish.vo.SetmealOverViewVO;
+import com.fish.resp.BusinessDataVO;
+import com.fish.resp.DishOverViewVO;
+import com.fish.resp.OrderOverViewVO;
+import com.fish.resp.SetmealOverViewVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -40,8 +40,8 @@ public class WorkspaceServiceImpl implements WorkspaceService {
     public BusinessDataVO getBusinessData(LocalDateTime begin, LocalDateTime end) {
         Integer totalOrderCount = Math.toIntExact(countOrders(begin, end, null));
 
-        Integer validOrderCount = Math.toIntExact(countOrders(begin, end, Orders.COMPLETED));
-        Double turnover = sumOrderAmount(begin, end, Orders.COMPLETED);
+        Integer validOrderCount = Math.toIntExact(countOrders(begin, end, OrdersDO.COMPLETED));
+        Double turnover = sumOrderAmount(begin, end, OrdersDO.COMPLETED);
         turnover = turnover == null ? 0.0 : turnover;
 
         Double unitPrice = 0.0;
@@ -66,10 +66,10 @@ public class WorkspaceServiceImpl implements WorkspaceService {
     public OrderOverViewVO getOrderOverView() {
         LocalDateTime begin = LocalDateTime.now().with(LocalTime.MIN);
 
-        Integer waitingOrders = Math.toIntExact(countOrders(begin, null, Orders.TO_BE_CONFIRMED));
-        Integer deliveredOrders = Math.toIntExact(countOrders(begin, null, Orders.CONFIRMED));
-        Integer completedOrders = Math.toIntExact(countOrders(begin, null, Orders.COMPLETED));
-        Integer cancelledOrders = Math.toIntExact(countOrders(begin, null, Orders.CANCELLED));
+        Integer waitingOrders = Math.toIntExact(countOrders(begin, null, OrdersDO.TO_BE_CONFIRMED));
+        Integer deliveredOrders = Math.toIntExact(countOrders(begin, null, OrdersDO.CONFIRMED));
+        Integer completedOrders = Math.toIntExact(countOrders(begin, null, OrdersDO.COMPLETED));
+        Integer cancelledOrders = Math.toIntExact(countOrders(begin, null, OrdersDO.CANCELLED));
         Integer allOrders = Math.toIntExact(countOrders(begin, null, null));
 
         return OrderOverViewVO.builder()
@@ -84,9 +84,9 @@ public class WorkspaceServiceImpl implements WorkspaceService {
     @Override
     public DishOverViewVO getDishOverView() {
         Integer sold = Math.toIntExact(dishMapper.selectCount(
-                Wrappers.lambdaQuery(Dish.class).eq(Dish::getStatus, StatusConstant.ENABLE)));
+                Wrappers.lambdaQuery(DishDO.class).eq(DishDO::getStatus, StatusConstant.ENABLE)));
         Integer discontinued = Math.toIntExact(dishMapper.selectCount(
-                Wrappers.lambdaQuery(Dish.class).eq(Dish::getStatus, StatusConstant.DISABLE)));
+                Wrappers.lambdaQuery(DishDO.class).eq(DishDO::getStatus, StatusConstant.DISABLE)));
 
         return DishOverViewVO.builder()
                 .sold(sold)
@@ -97,9 +97,9 @@ public class WorkspaceServiceImpl implements WorkspaceService {
     @Override
     public SetmealOverViewVO getSetmealOverView() {
         Integer sold = Math.toIntExact(setmealMapper.selectCount(
-                Wrappers.lambdaQuery(Setmeal.class).eq(Setmeal::getStatus, StatusConstant.ENABLE)));
+                Wrappers.lambdaQuery(SetmealDO.class).eq(SetmealDO::getStatus, StatusConstant.ENABLE)));
         Integer discontinued = Math.toIntExact(setmealMapper.selectCount(
-                Wrappers.lambdaQuery(Setmeal.class).eq(Setmeal::getStatus, StatusConstant.DISABLE)));
+                Wrappers.lambdaQuery(SetmealDO.class).eq(SetmealDO::getStatus, StatusConstant.DISABLE)));
 
         return SetmealOverViewVO.builder()
                 .sold(sold)
@@ -108,27 +108,27 @@ public class WorkspaceServiceImpl implements WorkspaceService {
     }
 
     private Long countOrders(LocalDateTime begin, LocalDateTime end, Integer status) {
-        return orderMapper.selectCount(Wrappers.lambdaQuery(Orders.class)
-                .gt(begin != null, Orders::getOrderTime, begin)
-                .lt(end != null, Orders::getOrderTime, end)
-                .eq(status != null, Orders::getStatus, status));
+        return orderMapper.selectCount(Wrappers.lambdaQuery(OrdersDO.class)
+                .gt(begin != null, OrdersDO::getOrderTime, begin)
+                .lt(end != null, OrdersDO::getOrderTime, end)
+                .eq(status != null, OrdersDO::getStatus, status));
     }
 
     private Double sumOrderAmount(LocalDateTime begin, LocalDateTime end, Integer status) {
-        List<Orders> orders = orderMapper.selectList(Wrappers.lambdaQuery(Orders.class)
-                .gt(begin != null, Orders::getOrderTime, begin)
-                .lt(end != null, Orders::getOrderTime, end)
-                .eq(status != null, Orders::getStatus, status));
+        List<OrdersDO> orders = orderMapper.selectList(Wrappers.lambdaQuery(OrdersDO.class)
+                .gt(begin != null, OrdersDO::getOrderTime, begin)
+                .lt(end != null, OrdersDO::getOrderTime, end)
+                .eq(status != null, OrdersDO::getStatus, status));
         return orders.stream()
-                .map(Orders::getAmount)
+                .map(OrdersDO::getAmount)
                 .filter(Objects::nonNull)
                 .mapToDouble(BigDecimal::doubleValue)
                 .sum();
     }
 
     private Long countUsers(LocalDateTime begin, LocalDateTime end) {
-        return userMapper.selectCount(Wrappers.lambdaQuery(User.class)
-                .gt(begin != null, User::getCreateTime, begin)
-                .lt(end != null, User::getCreateTime, end));
+        return userMapper.selectCount(Wrappers.lambdaQuery(UserDO.class)
+                .gt(begin != null, UserDO::getCreateTime, begin)
+                .lt(end != null, UserDO::getCreateTime, end));
     }
 }

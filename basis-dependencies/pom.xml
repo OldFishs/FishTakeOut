@@ -23,6 +23,7 @@
         <jaxb-api.version>2.3.1</jaxb-api.version>
         <poi.version>3.16</poi.version>
         <wechatpay-apache-httpclient.version>0.4.8</wechatpay-apache-httpclient.version>
+        <easy-trans.version>2.3.1</easy-trans.version>
     </properties>
 
     <dependencyManagement>
@@ -109,6 +110,24 @@
                 <groupId>com.github.wechatpay-apiv3</groupId>
                 <artifactId>wechatpay-apache-httpclient</artifactId>
                 <version>${wechatpay-apache-httpclient.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.dromara</groupId>
+                <artifactId>easy-trans-anno</artifactId>
+                <version>${easy-trans.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.dromara</groupId>
+                <artifactId>easy-trans-spring-boot-starter</artifactId>
+                <version>${easy-trans.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.dromara</groupId>
+                <artifactId>easy-trans-mybatis-plus-extend</artifactId>
+                <version>${easy-trans.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

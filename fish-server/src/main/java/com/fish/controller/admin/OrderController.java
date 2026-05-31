@@ -8,15 +8,15 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.fish.dto.OrdersCancelDTO;
-import com.fish.dto.OrdersConfirmDTO;
-import com.fish.dto.OrdersPageQueryDTO;
-import com.fish.dto.OrdersRejectionDTO;
+import com.fish.req.OrdersCancel;
+import com.fish.req.OrdersConfirm;
+import com.fish.req.OrdersPageQuery;
+import com.fish.req.OrdersRejection;
 import com.fish.result.PageResult;
 import com.fish.result.Result;
 import com.fish.service.OrderService;
-import com.fish.vo.OrderStatisticsVO;
-import com.fish.vo.OrderVO;
+import com.fish.resp.OrderStatisticsVO;
+import com.fish.resp.OrderVO;
 
 @RestController("adminOrderController")
 @RequestMapping("/admin/order")
@@ -32,7 +32,7 @@ public class OrderController {
      * @return
      */
     @GetMapping("/conditionSearch")
-    public Result<PageResult<OrderVO>> conditionSearch(OrdersPageQueryDTO ordersPageQueryDTO) {
+    public Result<PageResult<OrderVO>> conditionSearch(OrdersPageQuery ordersPageQueryDTO) {
         PageResult<OrderVO> pageResult = orderService.conditionSearch(ordersPageQueryDTO);
         return Result.success(pageResult);
     }
@@ -66,7 +66,7 @@ public class OrderController {
      * @return
      */
     @PutMapping("/confirm")
-    public Result<String> confirm(@RequestBody OrdersConfirmDTO ordersConfirmDTO) {
+    public Result<String> confirm(@RequestBody OrdersConfirm ordersConfirmDTO) {
         orderService.confirm(ordersConfirmDTO);
         return Result.success();
     }
@@ -77,7 +77,7 @@ public class OrderController {
      * @return
      */
     @PutMapping("/rejection")
-    public Result<String> rejection(@RequestBody OrdersRejectionDTO ordersRejectionDTO) throws Exception {
+    public Result<String> rejection(@RequestBody OrdersRejection ordersRejectionDTO) throws Exception {
         orderService.rejection(ordersRejectionDTO);
         return Result.success();
     }
@@ -88,7 +88,7 @@ public class OrderController {
      * @return
      */
     @PutMapping("/cancel")
-    public Result<String> cancel(@RequestBody OrdersCancelDTO ordersCancelDTO) throws Exception {
+    public Result<String> cancel(@RequestBody OrdersCancel ordersCancelDTO) throws Exception {
         orderService.cancel(ordersCancelDTO);
         return Result.success();
     }

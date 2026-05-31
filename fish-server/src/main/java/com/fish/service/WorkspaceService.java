@@ -1,9 +1,9 @@
 package com.fish.service;
 
-import com.fish.vo.BusinessDataVO;
-import com.fish.vo.DishOverViewVO;
-import com.fish.vo.OrderOverViewVO;
-import com.fish.vo.SetmealOverViewVO;
+import com.fish.resp.BusinessDataVO;
+import com.fish.resp.DishOverViewVO;
+import com.fish.resp.OrderOverViewVO;
+import com.fish.resp.SetmealOverViewVO;
 
 import java.time.LocalDateTime;
 

@@ -1,13 +1,13 @@
 package com.fish.controller.user;
 
-import com.fish.dto.OrdersPaymentDTO;
-import com.fish.dto.OrdersSubmitDTO;
+import com.fish.req.OrdersPayment;
+import com.fish.req.OrdersSubmit;
 import com.fish.result.PageResult;
 import com.fish.result.Result;
 import com.fish.service.OrderService;
-import com.fish.vo.OrderPaymentVO;
-import com.fish.vo.OrderSubmitVO;
-import com.fish.vo.OrderVO;
+import com.fish.resp.OrderPaymentVO;
+import com.fish.resp.OrderSubmitVO;
+import com.fish.resp.OrderVO;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,7 +24,7 @@ public class OrderController {
 
     @PostMapping("/submit")
     @ApiOperation("用户下单")
-    public Result<OrderSubmitVO> submit(@RequestBody OrdersSubmitDTO dto) {
+    public Result<OrderSubmitVO> submit(@RequestBody OrdersSubmit dto) {
         OrderSubmitVO orderSubmitVO = orderService.submitOrder(dto);
         return Result.success(orderSubmitVO);
     }
@@ -37,7 +37,7 @@ public class OrderController {
      */
     @PutMapping("/payment")
     @ApiOperation("订单支付")
-    public Result<OrderPaymentVO> payment(@RequestBody OrdersPaymentDTO ordersPaymentDTO) throws Exception {
+    public Result<OrderPaymentVO> payment(@RequestBody OrdersPayment ordersPaymentDTO) throws Exception {
         log.info("订单支付：{}", ordersPaymentDTO);
         log.info("订单支付：{}", ordersPaymentDTO);
         OrderPaymentVO orderPaymentVO = orderService.payment(ordersPaymentDTO);

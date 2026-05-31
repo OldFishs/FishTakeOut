@@ -2,10 +2,10 @@ package com.fish.service;
 
 import java.time.LocalDate;
 
-import com.fish.vo.OrderReportVO;
-import com.fish.vo.SalesTop10ReportVO;
-import com.fish.vo.TurnoverReportVO;
-import com.fish.vo.UserReportVO;
+import com.fish.resp.OrderReportVO;
+import com.fish.resp.SalesTop10ReportVO;
+import com.fish.resp.TurnoverReportVO;
+import com.fish.resp.UserReportVO;
 import javax.servlet.http.HttpServletResponse;
 public interface ReportService {
 

@@ -1,8 +1,8 @@
 package com.fish.controller.admin;
 
-import com.fish.dto.CategoryDTO;
-import com.fish.dto.CategoryPageQueryDTO;
-import com.fish.entity.Category;
+import com.fish.req.Category;
+import com.fish.req.CategoryPageQuery;
+import com.fish.entity.CategoryDO;
 import com.fish.result.PageResult;
 import com.fish.result.Result;
 import com.fish.service.CategoryService;
@@ -33,7 +33,7 @@ public class CategoryController {
      */
     @PostMapping
     @ApiOperation("新增分类")
-    public Result<String> save(@RequestBody CategoryDTO categoryDTO){
+    public Result<String> save(@RequestBody Category categoryDTO){
         log.info("新增分类：{}", categoryDTO);
         categoryService.save(categoryDTO);
         return Result.success();
@@ -46,7 +46,7 @@ public class CategoryController {
      */
     @GetMapping("/page")
     @ApiOperation("分类分页查询")
-    public Result<PageResult> page(CategoryPageQueryDTO categoryPageQueryDTO){
+    public Result<PageResult> page(CategoryPageQuery categoryPageQueryDTO){
         log.info("分页查询：{}", categoryPageQueryDTO);
         PageResult pageResult = categoryService.pageQuery(categoryPageQueryDTO);
         return Result.success(pageResult);
@@ -72,7 +72,7 @@ public class CategoryController {
      */
     @PutMapping
     @ApiOperation("修改分类")
-    public Result<String> update(@RequestBody CategoryDTO categoryDTO){
+    public Result<String> update(@RequestBody Category categoryDTO){
         categoryService.update(categoryDTO);
         return Result.success();
     }
@@ -97,8 +97,8 @@ public class CategoryController {
      */
     @GetMapping("/list")
     @ApiOperation("根据类型查询分类")
-    public Result<List<Category>> list(Integer type){
-        List<Category> list = categoryService.list(type);
+    public Result<List<CategoryDO>> list(Integer type){
+        List<CategoryDO> list = categoryService.list(type);
         return Result.success(list);
     }
 }

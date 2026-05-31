@@ -1,20 +1,20 @@
 package com.fish.service.impl;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.fish.dto.GoodsSalesDTO;
-import com.fish.entity.OrderDetail;
-import com.fish.entity.Orders;
-import com.fish.entity.User;
+import com.fish.req.GoodsSales;
+import com.fish.entity.OrderDetailDO;
+import com.fish.entity.OrdersDO;
+import com.fish.entity.UserDO;
 import com.fish.mapper.OrderDetailMapper;
 import com.fish.mapper.OrderMapper;
 import com.fish.mapper.UserMapper;
 import com.fish.service.ReportService;
 import com.fish.service.WorkspaceService;
-import com.fish.vo.BusinessDataVO;
-import com.fish.vo.OrderReportVO;
-import com.fish.vo.SalesTop10ReportVO;
-import com.fish.vo.TurnoverReportVO;
-import com.fish.vo.UserReportVO;
+import com.fish.resp.BusinessDataVO;
+import com.fish.resp.OrderReportVO;
+import com.fish.resp.SalesTop10ReportVO;
+import com.fish.resp.TurnoverReportVO;
+import com.fish.resp.UserReportVO;
 import org.apache.commons.lang.StringUtils;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
@@ -32,7 +32,6 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -114,7 +113,7 @@ public class ReportServiceImpl implements ReportService {
             LocalDateTime beginTime = LocalDateTime.of(date, LocalTime.MIN);
             LocalDateTime endTime = LocalDateTime.of(date, LocalTime.MAX);
             orderCountList.add(getOrderCount(beginTime, endTime, null));
-            validOrderCountList.add(getOrderCount(beginTime, endTime, Orders.COMPLETED));
+            validOrderCountList.add(getOrderCount(beginTime, endTime, OrdersDO.COMPLETED));
         }
 
         Integer totalOrderCount = orderCountList.stream().reduce(0, Integer::sum);
@@ -136,31 +135,31 @@ public class ReportServiceImpl implements ReportService {
         LocalDateTime beginTime = LocalDateTime.of(begin, LocalTime.MIN);
         LocalDateTime endTime = LocalDateTime.of(end, LocalTime.MAX);
 
-        List<Orders> completedOrders = orderMapper.selectList(Wrappers.lambdaQuery(Orders.class)
-                .eq(Orders::getStatus, Orders.COMPLETED)
-                .gt(Orders::getOrderTime, beginTime)
-                .lt(Orders::getOrderTime, endTime));
+        List<OrdersDO> completedOrders = orderMapper.selectList(Wrappers.lambdaQuery(OrdersDO.class)
+                .eq(OrdersDO::getStatus, OrdersDO.COMPLETED)
+                .gt(OrdersDO::getOrderTime, beginTime)
+                .lt(OrdersDO::getOrderTime, endTime));
 
-        List<Long> orderIds = completedOrders.stream().map(Orders::getId).collect(Collectors.toList());
+        List<Long> orderIds = completedOrders.stream().map(OrdersDO::getId).collect(Collectors.toList());
         if (orderIds.isEmpty()) {
             return SalesTop10ReportVO.builder().nameList("").numberList("").build();
         }
 
-        List<OrderDetail> orderDetails = orderDetailMapper.selectList(
-                Wrappers.lambdaQuery(OrderDetail.class).in(OrderDetail::getOrderId, orderIds));
+        List<OrderDetailDO> orderDetails = orderDetailMapper.selectList(
+                Wrappers.lambdaQuery(OrderDetailDO.class).in(OrderDetailDO::getOrderId, orderIds));
 
-        List<GoodsSalesDTO> goodsSalesDTOList = orderDetails.stream()
-                .collect(Collectors.groupingBy(OrderDetail::getName, Collectors.summingInt(OrderDetail::getNumber)))
+        List<GoodsSales> goodsSalesDTOList = orderDetails.stream()
+                .collect(Collectors.groupingBy(OrderDetailDO::getName, Collectors.summingInt(OrderDetailDO::getNumber)))
                 .entrySet().stream()
-                .map(entry -> new GoodsSalesDTO(entry.getKey(), entry.getValue()))
-                .sorted(Comparator.comparing(GoodsSalesDTO::getNumber).reversed())
+                .map(entry -> new GoodsSales(entry.getKey(), entry.getValue()))
+                .sorted(Comparator.comparing(GoodsSales::getNumber).reversed())
                 .limit(10)
                 .collect(Collectors.toList());
 
         String nameList = StringUtils.join(
-                goodsSalesDTOList.stream().map(GoodsSalesDTO::getName).collect(Collectors.toList()), ",");
+                goodsSalesDTOList.stream().map(GoodsSales::getName).collect(Collectors.toList()), ",");
         String numberList = StringUtils.join(
-                goodsSalesDTOList.stream().map(GoodsSalesDTO::getNumber).collect(Collectors.toList()), ",");
+                goodsSalesDTOList.stream().map(GoodsSales::getNumber).collect(Collectors.toList()), ",");
 
         return SalesTop10ReportVO.builder()
                 .nameList(nameList)
@@ -221,25 +220,25 @@ public class ReportServiceImpl implements ReportService {
     }
 
     private Integer getUserCount(LocalDateTime beginTime, LocalDateTime endTime) {
-        return Math.toIntExact(userMapper.selectCount(Wrappers.lambdaQuery(User.class)
-                .gt(beginTime != null, User::getCreateTime, beginTime)
-                .lt(endTime != null, User::getCreateTime, endTime)));
+        return Math.toIntExact(userMapper.selectCount(Wrappers.lambdaQuery(UserDO.class)
+                .gt(beginTime != null, UserDO::getCreateTime, beginTime)
+                .lt(endTime != null, UserDO::getCreateTime, endTime)));
     }
 
     private Integer getOrderCount(LocalDateTime beginTime, LocalDateTime endTime, Integer status) {
-        return Math.toIntExact(orderMapper.selectCount(Wrappers.lambdaQuery(Orders.class)
-                .gt(beginTime != null, Orders::getOrderTime, beginTime)
-                .lt(endTime != null, Orders::getOrderTime, endTime)
-                .eq(status != null, Orders::getStatus, status)));
+        return Math.toIntExact(orderMapper.selectCount(Wrappers.lambdaQuery(OrdersDO.class)
+                .gt(beginTime != null, OrdersDO::getOrderTime, beginTime)
+                .lt(endTime != null, OrdersDO::getOrderTime, endTime)
+                .eq(status != null, OrdersDO::getStatus, status)));
     }
 
     private Double sumCompletedOrderAmount(LocalDateTime beginTime, LocalDateTime endTime) {
-        List<Orders> orders = orderMapper.selectList(Wrappers.lambdaQuery(Orders.class)
-                .eq(Orders::getStatus, Orders.COMPLETED)
-                .gt(Orders::getOrderTime, beginTime)
-                .lt(Orders::getOrderTime, endTime));
+        List<OrdersDO> orders = orderMapper.selectList(Wrappers.lambdaQuery(OrdersDO.class)
+                .eq(OrdersDO::getStatus, OrdersDO.COMPLETED)
+                .gt(OrdersDO::getOrderTime, beginTime)
+                .lt(OrdersDO::getOrderTime, endTime));
         return orders.stream()
-                .map(Orders::getAmount)
+                .map(OrdersDO::getAmount)
                 .filter(amount -> amount != null)
                 .mapToDouble(amount -> amount.doubleValue())
                 .sum();

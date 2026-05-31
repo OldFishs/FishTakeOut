@@ -10,10 +10,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.fish.result.Result;
 import com.fish.service.ReportService;
-import com.fish.vo.OrderReportVO;
-import com.fish.vo.SalesTop10ReportVO;
-import com.fish.vo.TurnoverReportVO;
-import com.fish.vo.UserReportVO;
+import com.fish.resp.OrderReportVO;
+import com.fish.resp.SalesTop10ReportVO;
+import com.fish.resp.TurnoverReportVO;
+import com.fish.resp.UserReportVO;
 
 import lombok.extern.slf4j.Slf4j;
 

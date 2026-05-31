@@ -1,10 +1,10 @@
 package com.fish.controller.user;
 
 import com.fish.constant.StatusConstant;
-import com.fish.entity.Setmeal;
+import com.fish.entity.SetmealDO;
 import com.fish.result.Result;
 import com.fish.service.SetmealService;
-import com.fish.vo.DishItemVO;
+import com.fish.resp.DishItemVO;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,12 +32,12 @@ public class SetmealController {
     @GetMapping("/list")
     @Cacheable(cacheNames = "setmealCache", key = "#categoryId")
     @ApiOperation("根据分类id查询套餐")
-    public Result<List<Setmeal>> list(Long categoryId) {
-        Setmeal setmeal = new Setmeal();
+    public Result<List<SetmealDO>> list(Long categoryId) {
+        SetmealDO setmeal = new SetmealDO();
         setmeal.setCategoryId(categoryId);
         setmeal.setStatus(StatusConstant.ENABLE);
 
-        List<Setmeal> list = setmealService.list(setmeal);
+        List<SetmealDO> list = setmealService.list(setmeal);
         return Result.success(list);
     }
 

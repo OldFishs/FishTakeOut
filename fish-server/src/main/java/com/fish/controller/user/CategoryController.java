@@ -1,6 +1,6 @@
 package com.fish.controller.user;
 
-import com.fish.entity.Category;
+import com.fish.entity.CategoryDO;
 import com.fish.result.Result;
 import com.fish.service.CategoryService;
 import io.swagger.annotations.Api;
@@ -27,8 +27,8 @@ public class CategoryController {
      */
     @GetMapping("/list")
     @ApiOperation("查询分类")
-    public Result<List<Category>> list(Integer type) {
-        List<Category> list = categoryService.list(type);
+    public Result<List<CategoryDO>> list(Integer type) {
+        List<CategoryDO> list = categoryService.list(type);
         return Result.success(list);
     }
 }

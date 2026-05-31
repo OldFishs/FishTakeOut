@@ -1,13 +1,13 @@
 package com.fish.controller.user;
 
 import com.fish.constant.JwtClaimsConstant;
-import com.fish.dto.UserLoginDTO;
-import com.fish.entity.User;
+import com.fish.req.UserLogin;
+import com.fish.entity.UserDO;
 import com.fish.properties.JwtProperties;
 import com.fish.result.Result;
 import com.fish.service.UserService;
 import com.fish.utils.JwtUtil;
-import com.fish.vo.UserLoginVO;
+import com.fish.resp.UserLoginVO;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
@@ -34,9 +34,9 @@ public class UserController {
 
     @PostMapping("/login")
     @ApiOperation("微信登录")
-    public Result<UserLoginVO> login(@RequestBody UserLoginDTO userLoginDTO) {
+    public Result<UserLoginVO> login(@RequestBody UserLogin userLoginDTO) {
         // 微信登陆
-        User user = userService.wxLogin(userLoginDTO);
+        UserDO user = userService.wxLogin(userLoginDTO);
 
         // 为微信用户生成jwt
         Map<String, Object> cliams = new HashMap<>();

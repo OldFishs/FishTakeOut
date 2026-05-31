@@ -1,10 +1,10 @@
 package com.fish.service;
 
-import com.fish.dto.DishDTO;
-import com.fish.dto.DishPageQueryDTO;
-import com.fish.entity.Dish;
+import com.fish.req.Dish;
+import com.fish.req.DishPageQuery;
+import com.fish.entity.DishDO;
 import com.fish.result.PageResult;
-import com.fish.vo.DishVO;
+import com.fish.resp.DishVO;
 
 import java.util.List;
 
@@ -15,7 +15,7 @@ public interface DishService {
      *
      * @param dishDTO
      */
-    public void saveWithFlavor(DishDTO dishDTO);
+    public void saveWithFlavor(Dish dishDTO);
 
     /**
      * 菜品分页查询
@@ -23,7 +23,7 @@ public interface DishService {
      * @param dishPageQueryDTO
      * @return
      */
-    PageResult pageQuery(DishPageQueryDTO dishPageQueryDTO);
+    PageResult pageQuery(DishPageQuery dishPageQueryDTO);
 
     /**
      * 菜品批量删除
@@ -45,7 +45,7 @@ public interface DishService {
      *
      * @param dishDTO
      */
-    void updateWithFlavor(DishDTO dishDTO);
+    void updateWithFlavor(Dish dishDTO);
 
     /**
      * 菜品起售停售
@@ -61,12 +61,12 @@ public interface DishService {
      * @param categoryId
      * @return
      */
-    List<Dish> list(Long categoryId);
+    List<DishDO> list(Long categoryId);
 
     /**
      * 条件查询菜品和口味
      * @param dish
      * @return
      */
-    List<DishVO> listWithFlavor(Dish dish);
+    List<DishVO> listWithFlavor(DishDO dish);
 }

@@ -6,10 +6,10 @@ import com.fish.constant.MessageConstant;
 import com.fish.constant.PasswordConstant;
 import com.fish.constant.StatusConstant;
 import com.fish.context.BaseContext;
-import com.fish.dto.EmployeeDTO;
-import com.fish.dto.EmployeeLoginDTO;
-import com.fish.dto.EmployeePageQueryDTO;
-import com.fish.entity.Employee;
+import com.fish.req.Employee;
+import com.fish.req.EmployeeLogin;
+import com.fish.req.EmployeePageQuery;
+import com.fish.entity.EmployeeDO;
 import com.fish.exception.AccountLockedException;
 import com.fish.exception.AccountNotFoundException;
 import com.fish.exception.PasswordErrorException;
@@ -32,10 +32,10 @@ public class EmployeeServiceImpl implements EmployeeService {
     private EmployeeMapper employeeMapper;
 
     @Override
-    public Employee login(EmployeeLoginDTO employeeLoginDTO) {
-        Employee employee = employeeMapper.selectOne(
-                Wrappers.lambdaQuery(Employee.class)
-                        .eq(Employee::getUsername, employeeLoginDTO.getUsername()));
+    public EmployeeDO login(EmployeeLogin employeeLoginDTO) {
+        EmployeeDO employee = employeeMapper.selectOne(
+                Wrappers.lambdaQuery(EmployeeDO.class)
+                        .eq(EmployeeDO::getUsername, employeeLoginDTO.getUsername()));
 
         if (employee == null) {
             throw new AccountNotFoundException(MessageConstant.ACCOUNT_NOT_FOUND);
@@ -54,8 +54,8 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     @Override
-    public void save(EmployeeDTO employeeDTO) {
-        Employee employee = new Employee();
+    public void save(Employee employeeDTO) {
+        EmployeeDO employee = new EmployeeDO();
         BeanUtils.copyProperties(employeeDTO, employee);
         employee.setStatus(StatusConstant.ENABLE);
         employee.setPassword(DigestUtils.md5DigestAsHex(PasswordConstant.DEFAULT_PASSWORD.getBytes()));
@@ -71,39 +71,39 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     @Override
-    public PageResult pageQuery(EmployeePageQueryDTO employeePageQueryDTO) {
-        Page<Employee> page = new Page<>(employeePageQueryDTO.getPage(), employeePageQueryDTO.getPageSize());
+    public PageResult pageQuery(EmployeePageQuery employeePageQueryDTO) {
+        Page<EmployeeDO> page = new Page<>(employeePageQueryDTO.getPage(), employeePageQueryDTO.getPageSize());
         page = employeeMapper.pageQuery(page, employeePageQueryDTO);
         return new PageResult(page.getTotal(), page.getRecords());
     }
 
     @Override
     public void startOrStop(Integer status, Long id) {
-        employeeMapper.update(null, Wrappers.lambdaUpdate(Employee.class)
-                .eq(Employee::getId, id)
-                .set(Employee::getStatus, status)
-                .set(Employee::getUpdateTime, LocalDateTime.now()));
+        employeeMapper.update(null, Wrappers.lambdaUpdate(EmployeeDO.class)
+                .eq(EmployeeDO::getId, id)
+                .set(EmployeeDO::getStatus, status)
+                .set(EmployeeDO::getUpdateTime, LocalDateTime.now()));
     }
 
     @Override
-    public Employee getById(Long id) {
+    public EmployeeDO getById(Long id) {
         return employeeMapper.selectById(id);
     }
 
     @Override
-    public void update(EmployeeDTO employeeDTO) {
-        Employee employee = new Employee();
+    public void update(Employee employeeDTO) {
+        EmployeeDO employee = new EmployeeDO();
         BeanUtils.copyProperties(employeeDTO, employee);
-        employeeMapper.update(null, Wrappers.lambdaUpdate(Employee.class)
-                .eq(Employee::getId, employee.getId())
-                .set(StringUtils.isNotBlank(employee.getName()), Employee::getName, employee.getName())
-                .set(StringUtils.isNotBlank(employee.getUsername()), Employee::getUsername, employee.getUsername())
-                .set(StringUtils.isNotBlank(employee.getPassword()), Employee::getPassword, employee.getPassword())
-                .set(StringUtils.isNotBlank(employee.getPhone()), Employee::getPhone, employee.getPhone())
-                .set(StringUtils.isNotBlank(employee.getSex()), Employee::getSex, employee.getSex())
-                .set(StringUtils.isNotBlank(employee.getIdNumber()), Employee::getIdNumber, employee.getIdNumber())
-                .set(employee.getStatus() != null, Employee::getStatus, employee.getStatus())
-                .set(Employee::getUpdateTime, LocalDateTime.now())
-                .set(Employee::getUpdateUser, BaseContext.getCurrentId()));
+        employeeMapper.update(null, Wrappers.lambdaUpdate(EmployeeDO.class)
+                .eq(EmployeeDO::getId, employee.getId())
+                .set(StringUtils.isNotBlank(employee.getName()), EmployeeDO::getName, employee.getName())
+                .set(StringUtils.isNotBlank(employee.getUsername()), EmployeeDO::getUsername, employee.getUsername())
+                .set(StringUtils.isNotBlank(employee.getPassword()), EmployeeDO::getPassword, employee.getPassword())
+                .set(StringUtils.isNotBlank(employee.getPhone()), EmployeeDO::getPhone, employee.getPhone())
+                .set(StringUtils.isNotBlank(employee.getSex()), EmployeeDO::getSex, employee.getSex())
+                .set(StringUtils.isNotBlank(employee.getIdNumber()), EmployeeDO::getIdNumber, employee.getIdNumber())
+                .set(employee.getStatus() != null, EmployeeDO::getStatus, employee.getStatus())
+                .set(EmployeeDO::getUpdateTime, LocalDateTime.now())
+                .set(EmployeeDO::getUpdateUser, BaseContext.getCurrentId()));
     }
 }

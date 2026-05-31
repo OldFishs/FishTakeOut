@@ -1,11 +1,11 @@
 package com.fish.service;
 
-import com.fish.dto.*;
+import com.fish.req.*;
 import com.fish.result.PageResult;
-import com.fish.vo.OrderPaymentVO;
-import com.fish.vo.OrderStatisticsVO;
-import com.fish.vo.OrderSubmitVO;
-import com.fish.vo.OrderVO;
+import com.fish.resp.OrderPaymentVO;
+import com.fish.resp.OrderStatisticsVO;
+import com.fish.resp.OrderSubmitVO;
+import com.fish.resp.OrderVO;
 
 public interface OrderService {
     /**
@@ -13,14 +13,14 @@ public interface OrderService {
      * @param ordersSubmitDTO
      * @return
      */
-    OrderSubmitVO submitOrder(OrdersSubmitDTO ordersSubmitDTO);
+    OrderSubmitVO submitOrder(OrdersSubmit ordersSubmitDTO);
 
     /**
      * 订单支付
      * @param ordersPaymentDTO
      * @return
      */
-    OrderPaymentVO payment(OrdersPaymentDTO ordersPaymentDTO) throws Exception;
+    OrderPaymentVO payment(OrdersPayment ordersPaymentDTO) throws Exception;
 
     /**
      * 支付成功，修改订单状态
@@ -61,7 +61,7 @@ public interface OrderService {
      * @param ordersPageQueryDTO
      * @return
      */
-    PageResult<OrderVO> conditionSearch(OrdersPageQueryDTO ordersPageQueryDTO);
+    PageResult<OrderVO> conditionSearch(OrdersPageQuery ordersPageQueryDTO);
 
     /**
      * 各个状态的订单数量统计
@@ -74,21 +74,21 @@ public interface OrderService {
      *
      * @param ordersConfirmDTO
      */
-    void confirm(OrdersConfirmDTO ordersConfirmDTO);
+    void confirm(OrdersConfirm ordersConfirmDTO);
 
     /**
      * 拒单
      *
      * @param ordersRejectionDTO
      */
-    void rejection(OrdersRejectionDTO ordersRejectionDTO) throws Exception;
+    void rejection(OrdersRejection ordersRejectionDTO) throws Exception;
 
     /**
      * 商家取消订单
      *
      * @param ordersCancelDTO
      */
-    void cancel(OrdersCancelDTO ordersCancelDTO) throws Exception;
+    void cancel(OrdersCancel ordersCancelDTO) throws Exception;
 
     /**
      * 派送订单

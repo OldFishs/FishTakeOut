@@ -1,11 +1,11 @@
 package com.fish.service;
 
-import com.fish.dto.SetmealDTO;
-import com.fish.dto.SetmealPageQueryDTO;
-import com.fish.entity.Setmeal;
+import com.fish.req.Setmeal;
+import com.fish.req.SetmealPageQuery;
+import com.fish.entity.SetmealDO;
 import com.fish.result.PageResult;
-import com.fish.vo.DishItemVO;
-import com.fish.vo.SetmealVO;
+import com.fish.resp.DishItemVO;
+import com.fish.resp.SetmealVO;
 
 import java.util.List;
 
@@ -16,7 +16,7 @@ public interface SetmealService {
      *
      * @param setmealDTO
      */
-    void saveWithDish(SetmealDTO setmealDTO);
+    void saveWithDish(Setmeal setmealDTO);
 
     /**
      * 分页查询
@@ -24,7 +24,7 @@ public interface SetmealService {
      * @param setmealPageQueryDTO
      * @return
      */
-    PageResult pageQuery(SetmealPageQueryDTO setmealPageQueryDTO);
+    PageResult pageQuery(SetmealPageQuery setmealPageQueryDTO);
 
     /**
      * 批量删除套餐
@@ -46,7 +46,7 @@ public interface SetmealService {
      *
      * @param setmealDTO
      */
-    void update(SetmealDTO setmealDTO);
+    void update(Setmeal setmealDTO);
 
     /**
      * 套餐起售、停售
@@ -61,7 +61,7 @@ public interface SetmealService {
      * @param setmeal
      * @return
      */
-    List<Setmeal> list(Setmeal setmeal);
+    List<SetmealDO> list(SetmealDO setmeal);
 
     /**
      * 根据id查询菜品选项

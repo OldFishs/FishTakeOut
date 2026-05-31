@@ -4,8 +4,8 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.fish.constant.MessageConstant;
-import com.fish.dto.UserLoginDTO;
-import com.fish.entity.User;
+import com.fish.req.UserLogin;
+import com.fish.entity.UserDO;
 import com.fish.exception.LoginFailedException;
 import com.fish.mapper.UserMapper;
 import com.fish.properties.WeChatProperties;
@@ -29,15 +29,15 @@ public class UserServiceImpl implements UserService {
     private UserMapper userMapper;
 
     @Override
-    public User wxLogin(UserLoginDTO userLoginDTO) {
+    public UserDO wxLogin(UserLogin userLoginDTO) {
         String openid = getOpenId(userLoginDTO.getCode());
         if (openid == null) {
             throw new LoginFailedException(MessageConstant.LOGIN_FAILED);
         }
 
-        User user = userMapper.selectOne(Wrappers.lambdaQuery(User.class).eq(User::getOpenid, openid));
+        UserDO user = userMapper.selectOne(Wrappers.lambdaQuery(UserDO.class).eq(UserDO::getOpenid, openid));
         if (user == null) {
-            user = User.builder()
+            user = UserDO.builder()
                     .openid(openid)
                     .createTime(LocalDateTime.now())
                     .build();

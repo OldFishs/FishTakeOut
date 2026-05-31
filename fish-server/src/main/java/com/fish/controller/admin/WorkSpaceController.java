@@ -2,10 +2,10 @@ package com.fish.controller.admin;
 
 import com.fish.result.Result;
 import com.fish.service.WorkspaceService;
-import com.fish.vo.BusinessDataVO;
-import com.fish.vo.DishOverViewVO;
-import com.fish.vo.OrderOverViewVO;
-import com.fish.vo.SetmealOverViewVO;
+import com.fish.resp.BusinessDataVO;
+import com.fish.resp.DishOverViewVO;
+import com.fish.resp.OrderOverViewVO;
+import com.fish.resp.SetmealOverViewVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

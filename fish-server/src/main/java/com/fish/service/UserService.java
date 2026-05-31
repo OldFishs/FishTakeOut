@@ -1,7 +1,7 @@
 package com.fish.service;
 
-import com.fish.dto.UserLoginDTO;
-import com.fish.entity.User;
+import com.fish.req.UserLogin;
+import com.fish.entity.UserDO;
 
 public interface UserService {
 
@@ -10,5 +10,5 @@ public interface UserService {
      * @param userLoginDTO
      * @return
      */
-    User wxLogin(UserLoginDTO userLoginDTO);
+    UserDO wxLogin(UserLogin userLoginDTO);
 }

@@ -1,20 +1,20 @@
 package com.fish.service;
 
-import com.fish.entity.AddressBook;
+import com.fish.entity.AddressBookDO;
 
 import java.util.List;
 
 public interface AddressBookService {
 
-    List<AddressBook> list(AddressBook addressBook);
+    List<AddressBookDO> list(AddressBookDO addressBook);
 
-    void save(AddressBook addressBook);
+    void save(AddressBookDO addressBook);
 
-    AddressBook getById(Long id);
+    AddressBookDO getById(Long id);
 
-    void update(AddressBook addressBook);
+    void update(AddressBookDO addressBook);
 
-    void setDefault(AddressBook addressBook);
+    void setDefault(AddressBookDO addressBook);
 
     void deleteById(Long id);
 

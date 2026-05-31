@@ -2,20 +2,20 @@ package com.fish.service.impl;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.fish.dto.SetmealDTO;
-import com.fish.dto.SetmealPageQueryDTO;
-import com.fish.entity.Category;
-import com.fish.entity.Dish;
-import com.fish.entity.Setmeal;
-import com.fish.entity.SetmealDish;
+import com.fish.req.Setmeal;
+import com.fish.req.SetmealPageQuery;
+import com.fish.entity.CategoryDO;
+import com.fish.entity.DishDO;
+import com.fish.entity.SetmealDO;
+import com.fish.entity.SetmealDishDO;
 import com.fish.mapper.CategoryMapper;
 import com.fish.mapper.DishMapper;
 import com.fish.mapper.SetmealDishMapper;
 import com.fish.mapper.SetmealMapper;
 import com.fish.result.PageResult;
 import com.fish.service.SetmealService;
-import com.fish.vo.DishItemVO;
-import com.fish.vo.SetmealVO;
+import com.fish.resp.DishItemVO;
+import com.fish.resp.SetmealVO;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,19 +41,19 @@ public class SetmealServiceImpl implements SetmealService {
 
     @Override
     @Transactional
-    public void saveWithDish(SetmealDTO setmealDTO) {
-        Setmeal setmeal = new Setmeal();
+    public void saveWithDish(Setmeal setmealDTO) {
+        SetmealDO setmeal = new SetmealDO();
         BeanUtils.copyProperties(setmealDTO, setmeal);
         setmealMapper.insert(setmeal);
 
-        List<SetmealDish> setmealDishes = setmealDTO.getSetmealDishes();
+        List<SetmealDishDO> setmealDishes = setmealDTO.getSetmealDishes();
         setmealDishes.forEach(setmealDish -> setmealDish.setSetmealId(setmeal.getId()));
         setmealDishes.forEach(setmealDishMapper::insert);
     }
 
     @Override
-    public PageResult pageQuery(SetmealPageQueryDTO setmealPageQueryDTO) {
-        Page<Setmeal> page = new Page<>(setmealPageQueryDTO.getPage(), setmealPageQueryDTO.getPageSize());
+    public PageResult pageQuery(SetmealPageQuery setmealPageQueryDTO) {
+        Page<SetmealDO> page = new Page<>(setmealPageQueryDTO.getPage(), setmealPageQueryDTO.getPageSize());
         page = setmealMapper.pageQuery(page, setmealPageQueryDTO);
         List<SetmealVO> setmealVOList = buildSetmealVOList(page.getRecords());
         return new PageResult(page.getTotal(), setmealVOList);
@@ -69,25 +69,25 @@ public class SetmealServiceImpl implements SetmealService {
     }
 
     @Override
-    public void update(SetmealDTO setmealDTO) {
-        Setmeal setmeal = new Setmeal();
+    public void update(Setmeal setmealDTO) {
+        SetmealDO setmeal = new SetmealDO();
         BeanUtils.copyProperties(setmealDTO, setmeal);
         setmealMapper.updateById(setmeal);
     }
 
     @Override
     public void startOrStop(Integer status, Long id) {
-        setmealMapper.update(null, Wrappers.lambdaUpdate(Setmeal.class)
-                .eq(Setmeal::getId, id)
-                .set(Setmeal::getStatus, status));
+        setmealMapper.update(null, Wrappers.lambdaUpdate(SetmealDO.class)
+                .eq(SetmealDO::getId, id)
+                .set(SetmealDO::getStatus, status));
     }
 
     @Override
-    public List<Setmeal> list(Setmeal setmeal) {
-        return setmealMapper.selectList(Wrappers.lambdaQuery(Setmeal.class)
-                .like(StringUtils.isNotBlank(setmeal.getName()), Setmeal::getName, setmeal.getName())
-                .eq(setmeal.getCategoryId() != null, Setmeal::getCategoryId, setmeal.getCategoryId())
-                .eq(setmeal.getStatus() != null, Setmeal::getStatus, setmeal.getStatus()));
+    public List<SetmealDO> list(SetmealDO setmeal) {
+        return setmealMapper.selectList(Wrappers.lambdaQuery(SetmealDO.class)
+                .like(StringUtils.isNotBlank(setmeal.getName()), SetmealDO::getName, setmeal.getName())
+                .eq(setmeal.getCategoryId() != null, SetmealDO::getCategoryId, setmeal.getCategoryId())
+                .eq(setmeal.getStatus() != null, SetmealDO::getStatus, setmeal.getStatus()));
     }
 
     @Override
@@ -97,35 +97,35 @@ public class SetmealServiceImpl implements SetmealService {
 
     @Override
     public SetmealVO getById(Long id) {
-        Setmeal setmeal = setmealMapper.selectById(id);
+        SetmealDO setmeal = setmealMapper.selectById(id);
         if (setmeal == null) {
             return null;
         }
         SetmealVO setmealVO = new SetmealVO();
         BeanUtils.copyProperties(setmeal, setmealVO);
 
-        Category category = categoryMapper.selectById(setmeal.getCategoryId());
+        CategoryDO category = categoryMapper.selectById(setmeal.getCategoryId());
         if (category != null) {
             setmealVO.setCategoryName(category.getName());
         }
 
-        List<SetmealDish> setmealDishes = setmealDishMapper.selectList(
-                Wrappers.lambdaQuery(SetmealDish.class).eq(SetmealDish::getSetmealId, id));
+        List<SetmealDishDO> setmealDishes = setmealDishMapper.selectList(
+                Wrappers.lambdaQuery(SetmealDishDO.class).eq(SetmealDishDO::getSetmealId, id));
         setmealVO.setSetmealDishes(setmealDishes);
         return setmealVO;
     }
 
     private List<DishItemVO> getDishItemBySetmealId(Long setmealId) {
-        List<SetmealDish> setmealDishes = setmealDishMapper.selectList(
-                Wrappers.lambdaQuery(SetmealDish.class).eq(SetmealDish::getSetmealId, setmealId));
+        List<SetmealDishDO> setmealDishes = setmealDishMapper.selectList(
+                Wrappers.lambdaQuery(SetmealDishDO.class).eq(SetmealDishDO::getSetmealId, setmealId));
 
         List<DishItemVO> dishItemVOList = new ArrayList<>();
-        for (SetmealDish setmealDish : setmealDishes) {
+        for (SetmealDishDO setmealDish : setmealDishes) {
             DishItemVO dishItemVO = DishItemVO.builder()
                     .name(setmealDish.getName())
                     .copies(setmealDish.getCopies())
                     .build();
-            Dish dish = dishMapper.selectById(setmealDish.getDishId());
+            DishDO dish = dishMapper.selectById(setmealDish.getDishId());
             if (dish != null) {
                 dishItemVO.setImage(dish.getImage());
                 dishItemVO.setDescription(dish.getDescription());
@@ -135,16 +135,16 @@ public class SetmealServiceImpl implements SetmealService {
         return dishItemVOList;
     }
 
-    private List<SetmealVO> buildSetmealVOList(List<Setmeal> setmeals) {
+    private List<SetmealVO> buildSetmealVOList(List<SetmealDO> setmeals) {
         if (setmeals == null || setmeals.isEmpty()) {
             return new ArrayList<>();
         }
-        List<Long> categoryIds = setmeals.stream().map(Setmeal::getCategoryId).distinct().collect(Collectors.toList());
+        List<Long> categoryIds = setmeals.stream().map(SetmealDO::getCategoryId).distinct().collect(Collectors.toList());
         Map<Long, String> categoryNameMap = categoryMapper.selectBatchIds(categoryIds).stream()
-                .collect(Collectors.toMap(Category::getId, Category::getName));
+                .collect(Collectors.toMap(CategoryDO::getId, CategoryDO::getName));
 
         List<SetmealVO> setmealVOList = new ArrayList<>();
-        for (Setmeal setmeal : setmeals) {
+        for (SetmealDO setmeal : setmeals) {
             SetmealVO setmealVO = new SetmealVO();
             BeanUtils.copyProperties(setmeal, setmealVO);
             setmealVO.setCategoryName(categoryNameMap.get(setmeal.getCategoryId()));

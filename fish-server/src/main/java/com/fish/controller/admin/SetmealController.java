@@ -1,11 +1,11 @@
 package com.fish.controller.admin;
 
-import com.fish.dto.SetmealDTO;
-import com.fish.dto.SetmealPageQueryDTO;
+import com.fish.req.Setmeal;
+import com.fish.req.SetmealPageQuery;
 import com.fish.result.PageResult;
 import com.fish.result.Result;
 import com.fish.service.SetmealService;
-import com.fish.vo.SetmealVO;
+import com.fish.resp.SetmealVO;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
@@ -32,7 +32,7 @@ public class SetmealController {
      */
     @PostMapping
     @CacheEvict(cacheNames = "setmealCache", key = "#setmealDTO.categoryId")
-    public Result<String> save(@RequestBody SetmealDTO setmealDTO) {
+    public Result<String> save(@RequestBody Setmeal setmealDTO) {
         log.info("新增套餐：{}", setmealDTO);
         setmealService.saveWithDish(setmealDTO);
         return Result.success();
@@ -45,7 +45,7 @@ public class SetmealController {
      * @return
      */
     @GetMapping("/page")
-    public Result<PageResult> page(SetmealPageQueryDTO setmealPageQueryDTO) {
+    public Result<PageResult> page(SetmealPageQuery setmealPageQueryDTO) {
         log.info("分页查询套餐列表，请求参数：{}", setmealPageQueryDTO);
         PageResult pageResult = setmealService.pageQuery(setmealPageQueryDTO);
         return Result.success(pageResult);
@@ -89,7 +89,7 @@ public class SetmealController {
     @PutMapping
     @ApiOperation("修改套餐")
     @CacheEvict(cacheNames = "setmealCache", allEntries = true)
-    public Result<String> update(@RequestBody SetmealDTO setmealDTO) {
+    public Result<String> update(@RequestBody Setmeal setmealDTO) {
         log.info("修改套餐，请求参数：{}", setmealDTO);
         setmealService.update(setmealDTO);
         return Result.success();
